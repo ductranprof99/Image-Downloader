@@ -22,8 +22,7 @@ A powerful, production-ready Swift image downloading library with advanced cachi
 7. [Advanced Usage](#advanced-usage)
 8. [Migration Guide](#migration-guide)
 9. [API Reference](#api-reference)
-10. [Examples](#examples)
-11. [Roadmap](#roadmap)
+10. [Additional Resources](#additional-resources)
 
 ---
 
@@ -666,72 +665,14 @@ ImageDownloaderManager.shared.addObserver(observer)
 
 ## Migration Guide
 
-### From v1.x (Objective-C) to v2.0+
+For complete migration instructions, see **[Migration Guide](markdown/MIGRATION_GUIDE.md)**
 
-#### Package Name Changes
+### Quick Migration Reference
 
-```swift
-// Before
-import CNI
-import CNIUIKit
+- **v1.x → v2.0+**: Package names changed from `CNI` to `ImageDownloader`
+- **v2.0 → v2.1**: 100% backward compatible, new features are opt-in
 
-// After
-import ImageDownloader
-import ImageDownloaderUI
-```
-
-#### Class Name Changes
-
-| v1.x | v2.0+ |
-|------|-------|
-| `CNIManager` | `ImageDownloaderManager` |
-| `CNIImageView` | `AsyncImageView` |
-| `CustomNetworkImageView` | `NetworkImageView` |
-
-#### API Changes
-
-```swift
-// Before (v1.x)
-CNIManager.sharedManager().requestImage(
-    at: url,
-    completion: { image, error, fromCache, fromStorage in
-        imageView.image = image
-    }
-)
-
-// After (v2.0+) - Completion handler
-ImageDownloaderManager.shared.requestImage(at: url) { image, error, fromCache, fromStorage in
-    imageView.image = image
-}
-
-// After (v2.0+) - Async/await (recommended)
-let result = try await ImageDownloaderManager.shared.requestImage(at: url)
-imageView.image = result.image
-```
-
-### From v2.0 to v2.1
-
-**Good news: 100% backward compatible!**
-
-```swift
-// v2.0 code still works in v2.1
-ImageDownloaderManager.shared.configure(config)
-ImageDownloaderManager.shared.requestImage(at: url) { image, error, _, _ in
-    imageView.image = image
-}
-
-// v2.1 new features (opt-in)
-let image = try await UIImage.load(from: url, config: FastConfig.shared)
-```
-
-**New in v2.1:**
-- Injectable configuration per request
-- `UIImage.load(from:config:)` extension
-- Preset configs (Fast, OfflineFirst, LowMemory)
-- ConfigBuilder fluent API
-- Retry with exponential backoff
-- Request deduplication
-- Network reachability monitoring
+See the [full migration guide](markdown/MIGRATION_GUIDE.md) for detailed instructions and examples
 
 ---
 
@@ -906,246 +847,34 @@ struct RetryPolicy {
 
 ---
 
-## Examples
+## Additional Resources
 
-### Example 1: Social Media App
+### 📚 Core Documentation
 
-```swift
-struct SocialMediaConfig {
-    // Avatars: small, fast, high priority
-    static let avatar = ConfigBuilder()
-        .maxConcurrentDownloads(8)
-        .cacheSize(high: 150, low: 300)
-        .retryPolicy(.aggressive)
-        .compressionProvider(JPEGCompressionProvider(quality: 0.7))
-        .build()
+- **[Architecture Guide](markdown/ARCHITECTURE.md)** - System architecture, diagrams, and design patterns
+- **[Configuration Guide](markdown/CONFIGURATION.md)** - Complete guide to configuring ImageDownloader
+- **[Migration Guide](markdown/MIGRATION_GUIDE.md)** - Upgrading between versions (v1.x → v2.0 → v2.1)
+- **[Usage Examples](markdown/EXAMPLES.md)** - Ready-to-use code examples for common use cases
+- **[Roadmap](markdown/ROADMAP.md)** - Future features and development timeline
+- **[API Documentation](https://ductranprof99.github.io/Image-Downloader/)** - Full DocC API reference
 
-    // Feed photos: balanced
-    static let feed = ConfigBuilder()
-        .maxConcurrentDownloads(6)
-        .cacheSize(high: 100, low: 200)
-        .compressionProvider(JPEGCompressionProvider(quality: 0.8))
-        .build()
+### 🎯 Quick Example Links
 
-    // Full photos: offline-first
-    static let fullPhoto = OfflineFirstConfig.shared
+- **Social Media App** - [View Example](markdown/EXAMPLES.md#social-media-app)
+- **E-Commerce App** - [View Example](markdown/EXAMPLES.md#e-commerce-app)
+- **Progress Tracking (UIKit)** - [View Example](markdown/EXAMPLES.md#progress-tracking-in-uikit)
+- **Progress Tracking (SwiftUI)** - [View Example](markdown/EXAMPLES.md#progress-tracking-in-swiftui)
+- **Authenticated API** - [View Example](markdown/EXAMPLES.md#authenticated-api)
+- **UIImage Direct Loading** - [View Example](markdown/EXAMPLES.md#uiimage-direct-loading)
+- **Custom Configuration** - [View Example](markdown/EXAMPLES.md#custom-configuration)
 
-    // Stories: fast, low quality, don't save
-    static let story = ConfigBuilder()
-        .maxConcurrentDownloads(10)
-        .enableStorage(false)
-        .compressionProvider(JPEGCompressionProvider(quality: 0.6))
-        .build()
-}
+### 🏗️ Architecture & Design
 
-// Usage
-class FeedCell: UITableViewCell {
-    func configure(with post: Post) {
-        avatarImageView.setImage(
-            with: post.user.avatarURL,
-            config: SocialMediaConfig.avatar,
-            placeholder: UIImage(named: "avatar_placeholder")
-        )
-
-        photoImageView.setImage(
-            with: post.photoURL,
-            config: SocialMediaConfig.feed,
-            placeholder: UIImage(named: "photo_placeholder")
-        )
-    }
-}
-```
-
-### Example 2: E-Commerce App
-
-```swift
-struct ECommerceConfig {
-    static let productThumbnail = LowMemoryConfig.shared
-    static let productImage = FastConfig.shared
-    static let productZoom = OfflineFirstConfig.shared
-}
-
-class ProductViewController: UIViewController {
-    func loadProduct(_ product: Product) {
-        // Thumbnail
-        thumbnailView.setImage(
-            with: product.thumbnailURL,
-            config: ECommerceConfig.productThumbnail
-        )
-
-        // Main image
-        Task {
-            let image = try await UIImage.load(
-                from: product.imageURL,
-                config: ECommerceConfig.productImage
-            )
-            imageView.image = image
-        }
-    }
-}
-```
-
-### Example 3: Progress in Feed (UIKit)
-
-```swift
-class FeedCell: UITableViewCell {
-    @IBOutlet weak var photoImageView: UIImageView!
-    @IBOutlet weak var progressView: UIProgressView!
-
-    func configure(with post: Post) {
-        progressView.isHidden = false
-        progressView.progress = 0
-
-        photoImageView.setImage(
-            with: post.photoURL,
-            config: FastConfig.shared,
-            placeholder: UIImage(named: "placeholder"),
-            onProgress: { [weak self] progress in
-                self?.progressView.progress = Float(progress)
-            },
-            onCompletion: { [weak self] image, error, fromCache, fromStorage in
-                // Hide progress when done
-                self?.progressView.isHidden = true
-
-                // If from cache, it was instant - user didn't see progress
-                if fromCache || fromStorage {
-                    print("Loaded instantly from cache/storage")
-                }
-            }
-        )
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        photoImageView.cancelImageLoading()
-    }
-}
-```
-
-### Example 4: Progress in SwiftUI
-
-```swift
-import SwiftUI
-import ImageDownloader
-
-struct FeedView: View {
-    let posts: [Post]
-
-    var body: some View {
-        ScrollView {
-            LazyVStack {
-                ForEach(posts) { post in
-                    FeedItemView(post: post)
-                }
-            }
-        }
-    }
-}
-
-struct FeedItemView: View {
-    let post: Post
-    @StateObject private var imageLoader = ImageLoader()
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            // Image with progress
-            ZStack {
-                if let image = imageLoader.image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(height: 300)
-                        .clipped()
-                } else {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 300)
-                        .overlay(
-                            VStack {
-                                ProgressView(value: imageLoader.progress, total: 1.0)
-                                    .scaleEffect(1.5)
-
-                                if imageLoader.progress > 0 {
-                                    Text("\(Int(imageLoader.progress * 100))%")
-                                        .font(.caption)
-                                }
-                            }
-                        )
-                }
-            }
-
-            Text(post.title)
-                .font(.headline)
-                .padding()
-        }
-        .onAppear {
-            imageLoader.load(from: post.photoURL, config: FastConfig.shared)
-        }
-    }
-}
-```
-
-### Example 5: Authenticated API
-
-```swift
-struct PrivateAPIConfig: ImageDownloaderConfigProtocol {
-    var networkConfig: NetworkConfigProtocol {
-        var config = DefaultNetworkConfig()
-        config.authenticationHandler = { request in
-            if let token = AuthManager.shared.accessToken {
-                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            }
-            request.setValue("MyApp/1.0", forHTTPHeaderField: "User-Agent")
-        }
-        config.customHeaders = [
-            "X-Client-ID": "my-client-id"
-        ]
-        return config
-    }
-
-    var cacheConfig: CacheConfigProtocol {
-        DefaultCacheConfig()
-    }
-
-    var storageConfig: StorageConfigProtocol {
-        DefaultStorageConfig()
-    }
-}
-
-// Usage
-let config = PrivateAPIConfig()
-let image = try await UIImage.load(from: privateImageURL, config: config)
-```
-
----
-
-## Roadmap
-
-### v2.1.0 ✅ (Current - Released 2025-01-06)
-- ✅ Protocol-based injectable configuration
-- ✅ Retry mechanism with exponential backoff
-- ✅ Request deduplication
-- ✅ Custom headers & authentication
-- ✅ Network reachability monitoring
-
-### v2.2.0 (Q2 2025)
-- [ ] Enhanced storage with inspection API
-- [ ] Filename providers for readable filenames
-- [ ] Storage debug UI
-- [ ] Bandwidth throttling
-- [ ] Request interceptor pattern
-
-### v2.3.0 (Q3 2025)
-- [ ] Progressive image loading
-- [ ] WebP/AVIF format support
-- [ ] SwiftUI native AsyncImage component
-- [ ] Advanced caching strategies
-
-### v3.0.0 (Q4 2025)
-- [ ] Actor-based concurrency
-- [ ] Combine framework integration
-- [ ] Image processing pipeline
-- [ ] CDN-specific optimizations
+- **System Overview** - [View Architecture](markdown/ARCHITECTURE.md#system-overview)
+- **Component Details** - [View Components](markdown/ARCHITECTURE.md#component-details)
+- **Data Flow Diagrams** - [View Flow](markdown/ARCHITECTURE.md#data-flow)
+- **Design Patterns** - [View Patterns](markdown/ARCHITECTURE.md#design-patterns)
+- **Threading Model** - [View Threading](markdown/ARCHITECTURE.md#threading-model)
 
 ---
 
