@@ -6,7 +6,9 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 import CryptoKit
 
 // MARK: - Default Identifier Providers

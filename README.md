@@ -1,66 +1,78 @@
 # ImageDownloader
 
 [![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
-[![Platform](https://img.shields.io/badge/platform-iOS%2013%2B%20%7C%20macOS%2010.15%2B-lightgrey.svg)](https://developer.apple.com)
+[![Platform](https://img.shields.io/badge/platform-iOS%2013%2B-lightgrey.svg)](https://developer.apple.com)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-2.1.0-green.svg)](https://github.com/ductranprof99/Image-Downloader)
 
-A powerful, production-ready Swift image downloading library with advanced caching, async/await support, and full customization.
+A powerful, production-ready Swift image downloading library with advanced caching, async/await support, protocol-based injectable configuration, and full customization.
 
 ## ✨ Features
 
 - 🚀 **Modern Swift Concurrency** - Built-in async/await support
 - 💾 **Intelligent Caching** - Two-tier memory cache (high/low priority)
 - 📦 **Persistent Storage** - Automatic disk caching with customizable compression
-- 🎨 **Fully Customizable** - Protocol-based providers for identifiers, paths, and compression
+- 🎨 **Injectable Configuration** - Different configs per request (NEW in v2.1!)
+- 🔁 **Retry with Backoff** - Intelligent retry for failed downloads
+- 🔗 **Request Deduplication** - Prevents duplicate concurrent requests
+- 🔐 **Custom Headers & Auth** - Add auth tokens, API keys
+- 📡 **Network Monitoring** - WiFi/cellular status tracking
 - 🔄 **Objective-C Compatible** - Full bridging for legacy codebases
-- ⚡️ **Production Ready** - Battle-tested architecture with comprehensive error handling
-
-## 📦 Installation
-
-### Swift Package Manager
-
-```swift
-dependencies: [
-    .package(url: "https://github.com/ductranprof99/Image-Downloader.git", from: "2.0.0")
-]
-```
-
-Or add via Xcode: **File → Add Packages**
+- ⚡️ **Production Ready** - Battle-tested architecture
 
 ## 🚀 Quick Start
 
-### Swift (Async/Await)
+### Installation
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/ductranprof99/Image-Downloader.git", from: "2.1.0")
+]
+```
+
+### Basic Usage
 
 ```swift
 import ImageDownloader
 
-// Simple usage
-let result = try await ImageDownloaderManager.shared.requestImage(at: imageURL)
-imageView.image = result.image
+// Async/await (modern Swift)
+let image = try await UIImage.load(from: imageURL)
+imageView.image = image
 
-// With UIKit integration
-import ImageDownloaderUI
-
-let imageView = AsyncImageView()
-imageView.loadImage(from: imageURL)
+// UIImageView extension
+imageView.setImage(with: imageURL, placeholder: placeholderImage)
 ```
 
-### Objective-C
+### With Custom Configuration
 
-```objc
-@import ImageDownloader;
+```swift
+// Use preset configuration
+let image = try await UIImage.load(from: imageURL, config: FastConfig.shared)
 
-[[ImageDownloaderManager shared] requestImageAt:imageURL
-                                     completion:^(UIImage *image, NSError *error, BOOL fromCache, BOOL fromStorage) {
-    self.imageView.image = image;
-}];
+// Or build custom config
+let config = ConfigBuilder()
+    .maxConcurrentDownloads(8)
+    .retryPolicy(.aggressive)
+    .compressionProvider(JPEGCompressionProvider(quality: 0.8))
+    .build()
+
+let image = try await UIImage.load(from: imageURL, config: config)
 ```
 
 ## 📚 Documentation
 
-**Full documentation is available in DocC format.**
+**Full documentation is available in [DOCUMENTATION.md](DOCUMENTATION.md)**
 
-### Build Documentation
+Quick links:
+- [Quick Start](DOCUMENTATION.md#quick-start)
+- [Injectable Configuration System](DOCUMENTATION.md#injectable-configuration-system)
+- [Network Features](DOCUMENTATION.md#network-features)
+- [Advanced Usage](DOCUMENTATION.md#advanced-usage)
+- [Migration Guide](DOCUMENTATION.md#migration-guide)
+- [API Reference](DOCUMENTATION.md#api-reference)
+- [Examples](DOCUMENTATION.md#examples)
+
+### Build DocC Documentation
 
 ```bash
 # In Xcode: Product → Build Documentation
@@ -68,56 +80,85 @@ imageView.loadImage(from: imageURL)
 xcodebuild docbuild -scheme ImageDownloader -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
-### Quick Links
-
-- **[Getting Started](Sources/ImageDownloader/ImageDownloader.docc/GettingStarted.md)** - Installation and basic usage
-- **[Configuration](Sources/ImageDownloader/ImageDownloader.docc/Configuration.md)** - Configure caching and storage
-- **[Async/Await](Sources/ImageDownloader/ImageDownloader.docc/AsyncAwait.md)** - Modern Swift concurrency
-- **[Customization](Sources/ImageDownloader/ImageDownloader.docc/Customization.md)** - Customize compression and storage
-- **[Migration Guide](Sources/ImageDownloader/ImageDownloader.docc/MigrationGuide.md)** - Migrate from v1.x
-
 ## 🎯 Key Use Cases
 
 ### Save 70% Disk Space with JPEG
 
 ```swift
-let config = ImageDownloaderConfiguration(
-    compressionProvider: JPEGCompressionProvider(quality: 0.8)
-)
-ImageDownloaderManager.shared.configure(config)
+let config = ConfigBuilder()
+    .compressionProvider(JPEGCompressionProvider(quality: 0.8))
+    .build()
+
+let image = try await UIImage.load(from: url, config: config)
 ```
 
-### Organize 10,000+ Images
+### Offline-First App
 
 ```swift
-let config = ImageDownloaderConfiguration(
-    pathProvider: DomainHierarchicalPathProvider(),
-    compressionProvider: AdaptiveCompressionProvider()
-)
-ImageDownloaderManager.shared.configure(config)
+let config = OfflineFirstConfig.shared
+// - WiFi only
+// - Huge cache (200/500)
+// - Conservative retry
+// - Adaptive compression
+
+let image = try await UIImage.load(from: url, config: config)
 ```
 
-## 🏗️ Architecture
+### High-Performance Feed
 
+```swift
+let config = FastConfig.shared
+// - 8 concurrent downloads
+// - Aggressive retry
+// - Large cache
+// - Request deduplication
+
+imageView.setImage(with: url, config: config)
 ```
-┌─────────────────────────────────────────────┐
-│         Public API Layer                    │
-│  ┌─────────────────┐  ┌─────────────────┐   │
-│  │ Swift Modern    │  │  Objective-C    │   │
-│  │ async/await     │  │  Completions    │   │
-│  └─────────────────┘  └─────────────────┘   │
-└─────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────┐
-│     ImageDownloaderManager                  │
-│     - Configuration (injectable)            │
-│     - async/await + completion APIs         │
-└─────────────────────────────────────────────┘
-                    ↓
-┌──────────────┬──────────────┬──────────────┐
-│ CacheAgent   │ NetworkAgent │ StorageAgent │
-│ (async)      │ (async)      │ (async)      │
-└──────────────┴──────────────┴──────────────┘
+
+## 🆕 What's New in v2.1
+
+### Injectable Configuration
+Different configs for different use cases:
+
+```swift
+// Avatars: fast, high priority
+let avatar = try await UIImage.load(from: avatarURL, config: FastConfig.shared)
+
+// Photos: offline-first, huge cache
+let photo = try await UIImage.load(from: photoURL, config: OfflineFirstConfig.shared)
+```
+
+### Retry with Exponential Backoff
+Automatic retry for failed downloads:
+
+```swift
+let config = ConfigBuilder()
+    .retryPolicy(.aggressive)  // 5 retries, 0.5s base
+    .build()
+```
+
+### Request Deduplication
+Saves 50-90% bandwidth in list/grid views - multiple requests for the same URL are automatically merged.
+
+### Custom Headers & Authentication
+
+```swift
+let config = ConfigBuilder()
+    .customHeaders(["User-Agent": "MyApp/1.0"])
+    .authenticationHandler { request in
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    }
+    .build()
+```
+
+### Network Reachability Monitoring
+
+```swift
+NetworkMonitor.shared.startMonitoring()
+NetworkMonitor.shared.onReachabilityChange = { isReachable in
+    print("Network: \(isReachable)")
+}
 ```
 
 ## 📊 Performance
@@ -127,6 +168,27 @@ ImageDownloaderManager.shared.configure(config)
 | Default (PNG + Flat) | 100% | Good | Small apps |
 | JPEG 0.8 + Flat | 30% | Good | Medium apps |
 | Adaptive + Domain | 40% | Excellent | **Production** ⭐ |
+
+## 🗺️ Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for detailed roadmap.
+
+**v2.1.0** ✅ (Current)
+- Injectable configuration system
+- Retry with exponential backoff
+- Request deduplication
+- Custom headers & authentication
+- Network reachability monitoring
+
+**v2.2.0** (Q2 2025)
+- Enhanced storage with inspection API
+- Bandwidth throttling
+- Request interceptor pattern
+
+**v3.0.0** (Q4 2025)
+- Actor-based concurrency
+- Combine framework integration
+- SwiftUI native components
 
 ## 🤝 Contributing
 
@@ -138,9 +200,10 @@ MIT License - See [LICENSE](LICENSE) file for details.
 
 ## 🔗 Links
 
-- **Documentation (Pages):** https://ductranprof99.github.io/Image-Downloader/
-- **Issues:** [GitHub Issues](https://github.com/ductranprof99/Image-Downloader/issues)
-- **Migration:** [Migration Guide](Sources/ImageDownloader/ImageDownloader.docc/MigrationGuide.md)
+- **Documentation**: [DOCUMENTATION.md](DOCUMENTATION.md)
+- **Roadmap**: [ROADMAP.md](ROADMAP.md)
+- **DocC Documentation**: [https://ductranprof99.github.io/Image-Downloader/](https://ductranprof99.github.io/Image-Downloader/)
+- **Issues**: [GitHub Issues](https://github.com/ductranprof99/Image-Downloader/issues)
 
 ---
 

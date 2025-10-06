@@ -48,6 +48,10 @@ class NetworkTask {
     private(set) var progress: CGFloat
     var sessionTask: URLSessionDataTask?
 
+    // Retry tracking
+    var retryAttempt: Int = 0
+    var lastError: Error?
+
     private var callbacks: [NetworkTaskCallback] = []
     private let isolationQueue = DispatchQueue(label: "com.imagedownloader.networktask.isolation")
 

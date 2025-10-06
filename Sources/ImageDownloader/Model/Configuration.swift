@@ -39,11 +39,17 @@ public struct ImageDownloaderConfiguration {
     /// Enable debug logging (default: false)
     public var enableDebugLogging: Bool
 
-    /// Retry failed downloads (default: false)
-    public var enableRetry: Bool
+    /// Retry policy for failed downloads (default: RetryPolicy.default)
+    public var retryPolicy: RetryPolicy
 
-    /// Number of retry attempts (default: 3)
-    public var retryAttempts: Int
+    /// Custom HTTP headers to include in all requests
+    public var customHeaders: [String: String]?
+
+    /// Authentication handler to modify requests before sending
+    public var authenticationHandler: ((inout URLRequest) -> Void)?
+
+    /// Whether to allow downloads over cellular network (default: true)
+    public var allowsCellularAccess: Bool
 
     // MARK: - Customization Providers
 
@@ -66,8 +72,10 @@ public struct ImageDownloaderConfiguration {
         storagePath: String? = nil,
         shouldSaveToStorage: Bool = true,
         enableDebugLogging: Bool = false,
-        enableRetry: Bool = false,
-        retryAttempts: Int = 3,
+        retryPolicy: RetryPolicy = .default,
+        customHeaders: [String: String]? = nil,
+        authenticationHandler: ((inout URLRequest) -> Void)? = nil,
+        allowsCellularAccess: Bool = true,
         identifierProvider: any ResourceIdentifierProvider = MD5IdentifierProvider(),
         pathProvider: any StoragePathProvider = FlatStoragePathProvider(),
         compressionProvider: any ImageCompressionProvider = PNGCompressionProvider()
@@ -79,8 +87,10 @@ public struct ImageDownloaderConfiguration {
         self.storagePath = storagePath
         self.shouldSaveToStorage = shouldSaveToStorage
         self.enableDebugLogging = enableDebugLogging
-        self.enableRetry = enableRetry
-        self.retryAttempts = retryAttempts
+        self.retryPolicy = retryPolicy
+        self.customHeaders = customHeaders
+        self.authenticationHandler = authenticationHandler
+        self.allowsCellularAccess = allowsCellularAccess
         self.identifierProvider = identifierProvider
         self.pathProvider = pathProvider
         self.compressionProvider = compressionProvider
@@ -127,8 +137,9 @@ public struct ImageDownloaderConfiguration {
     // MARK: - Advanced Settings
 
     @objc public var enableDebugLogging: Bool
-    @objc public var enableRetry: Bool
-    @objc public var retryAttempts: Int
+    @objc public var retryPolicy: IDRetryPolicy
+    @objc public var customHeaders: [String: String]?
+    @objc public var allowsCellularAccess: Bool
 
     // MARK: - Customization Providers (Objective-C wrappers)
 
@@ -146,8 +157,9 @@ public struct ImageDownloaderConfiguration {
         self.storagePath = nil
         self.shouldSaveToStorage = true
         self.enableDebugLogging = false
-        self.enableRetry = false
-        self.retryAttempts = 3
+        self.retryPolicy = IDRetryPolicy.defaultPolicy()
+        self.customHeaders = nil
+        self.allowsCellularAccess = true
         self.identifierProvider = nil  // Will use defaults
         self.pathProvider = nil
         self.compressionProvider = nil
@@ -162,8 +174,9 @@ public struct ImageDownloaderConfiguration {
         storagePath: String?,
         shouldSaveToStorage: Bool,
         enableDebugLogging: Bool,
-        enableRetry: Bool,
-        retryAttempts: Int
+        retryPolicy: IDRetryPolicy,
+        customHeaders: [String: String]?,
+        allowsCellularAccess: Bool
     ) {
         self.maxConcurrentDownloads = maxConcurrentDownloads
         self.timeout = timeout
@@ -172,8 +185,9 @@ public struct ImageDownloaderConfiguration {
         self.storagePath = storagePath
         self.shouldSaveToStorage = shouldSaveToStorage
         self.enableDebugLogging = enableDebugLogging
-        self.enableRetry = enableRetry
-        self.retryAttempts = retryAttempts
+        self.retryPolicy = retryPolicy
+        self.customHeaders = customHeaders
+        self.allowsCellularAccess = allowsCellularAccess
         super.init()
     }
 
@@ -192,8 +206,9 @@ public struct ImageDownloaderConfiguration {
             storagePath: nil,
             shouldSaveToStorage: true,
             enableDebugLogging: false,
-            enableRetry: false,
-            retryAttempts: 3
+            retryPolicy: IDRetryPolicy.aggressivePolicy(),
+            customHeaders: nil,
+            allowsCellularAccess: true
         )
     }
 
@@ -206,8 +221,9 @@ public struct ImageDownloaderConfiguration {
             storagePath: nil,
             shouldSaveToStorage: true,
             enableDebugLogging: false,
-            enableRetry: false,
-            retryAttempts: 3
+            retryPolicy: IDRetryPolicy.conservativePolicy(),
+            customHeaders: nil,
+            allowsCellularAccess: true
         )
     }
 
@@ -251,8 +267,10 @@ public struct ImageDownloaderConfiguration {
             storagePath: storagePath,
             shouldSaveToStorage: shouldSaveToStorage,
             enableDebugLogging: enableDebugLogging,
-            enableRetry: enableRetry,
-            retryAttempts: retryAttempts,
+            retryPolicy: retryPolicy.toSwift(),
+            customHeaders: customHeaders,
+            authenticationHandler: nil,  // Not supported in Objective-C
+            allowsCellularAccess: allowsCellularAccess,
             identifierProvider: swiftIdentifierProvider,
             pathProvider: swiftPathProvider,
             compressionProvider: swiftCompressionProvider
@@ -268,8 +286,14 @@ public struct ImageDownloaderConfiguration {
             storagePath: config.storagePath,
             shouldSaveToStorage: config.shouldSaveToStorage,
             enableDebugLogging: config.enableDebugLogging,
-            enableRetry: config.enableRetry,
-            retryAttempts: config.retryAttempts
+            retryPolicy: IDRetryPolicy(
+                maxRetries: config.retryPolicy.maxRetries,
+                baseDelay: config.retryPolicy.baseDelay,
+                backoffMultiplier: config.retryPolicy.backoffMultiplier,
+                maxDelay: config.retryPolicy.maxDelay
+            ),
+            customHeaders: config.customHeaders,
+            allowsCellularAccess: config.allowsCellularAccess
         )
     }
 }

@@ -29,12 +29,42 @@ public class ImageDownloaderManager: NSObject {
     // Store identifier provider for ResourceModel creation
     private var identifierProvider: ResourceIdentifierProvider
 
-    // MARK: - Singleton
+    // MARK: - Singleton & Factory
 
+    /// Shared singleton instance with default configuration
     public static let shared = ImageDownloaderManager()
+
+    /// Manager instances cache for custom configurations
+    private static var instances: [String: ImageDownloaderManager] = [:]
+    private static let instancesLock = NSLock()
+
+    /// Get or create a manager instance for a specific configuration
+    /// - Parameter config: Custom configuration (nil = use shared instance)
+    /// - Returns: ImageDownloaderManager configured with the specified config
+    public static func instance(for config: ImageDownloaderConfigProtocol? = nil) -> ImageDownloaderManager {
+        guard let config = config else {
+            return shared
+        }
+
+        // Create a unique key for this configuration
+        let configKey = String(describing: type(of: config))
+
+        instancesLock.lock()
+        defer { instancesLock.unlock() }
+
+        if let existing = instances[configKey] {
+            return existing
+        }
+
+        // Create new instance with custom config
+        let manager = ImageDownloaderManager(config: config)
+        instances[configKey] = manager
+        return manager
+    }
 
     // MARK: - Initialization
 
+    /// Private initializer for singleton
     private override init() {
         // Default configuration
         self.configuration = .default
@@ -46,7 +76,52 @@ public class ImageDownloaderManager: NSObject {
             pathProvider: FlatStoragePathProvider(),
             compressionProvider: PNGCompressionProvider()
         )
-        self.networkAgent = NetworkAgent(maxConcurrentDownloads: 4)
+        self.networkAgent = NetworkAgent(
+            maxConcurrentDownloads: 4,
+            timeout: 30,
+            retryPolicy: .default,
+            customHeaders: nil,
+            authenticationHandler: nil,
+            allowsCellularAccess: true
+        )
+        self.observerManager = ObserverManager()
+
+        super.init()
+
+        self.cacheAgent.delegate = self
+    }
+
+    /// Internal initializer with injectable protocol-based configuration
+    internal init(config: ImageDownloaderConfigProtocol) {
+        // Convert protocol config to legacy format
+        let legacyConfig = config.toLegacyConfiguration()
+        self.configuration = legacyConfig
+
+        // Store identifier provider
+        self.identifierProvider = config.storageConfig.identifierProvider
+
+        // Initialize agents with protocol config
+        self.cacheAgent = CacheAgent(
+            highPriorityLimit: config.cacheConfig.highPriorityLimit,
+            lowPriorityLimit: config.cacheConfig.lowPriorityLimit
+        )
+
+        self.storageAgent = StorageAgent(
+            storagePath: config.storageConfig.storagePath,
+            identifierProvider: config.storageConfig.identifierProvider,
+            pathProvider: config.storageConfig.pathProvider,
+            compressionProvider: config.storageConfig.compressionProvider
+        )
+
+        self.networkAgent = NetworkAgent(
+            maxConcurrentDownloads: config.networkConfig.maxConcurrentDownloads,
+            timeout: config.networkConfig.timeout,
+            retryPolicy: config.networkConfig.retryPolicy,
+            customHeaders: config.networkConfig.customHeaders,
+            authenticationHandler: config.networkConfig.authenticationHandler,
+            allowsCellularAccess: config.networkConfig.allowsCellularAccess
+        )
+
         self.observerManager = ObserverManager()
 
         super.init()
@@ -77,7 +152,14 @@ public class ImageDownloaderManager: NSObject {
             pathProvider: configuration.pathProvider,
             compressionProvider: configuration.compressionProvider
         )
-        networkAgent = NetworkAgent(maxConcurrentDownloads: configuration.maxConcurrentDownloads)
+        networkAgent = NetworkAgent(
+            maxConcurrentDownloads: configuration.maxConcurrentDownloads,
+            timeout: configuration.timeout,
+            retryPolicy: configuration.retryPolicy,
+            customHeaders: configuration.customHeaders,
+            authenticationHandler: configuration.authenticationHandler,
+            allowsCellularAccess: configuration.allowsCellularAccess
+        )
     }
 
     /// Configure the manager with Objective-C configuration object
@@ -340,6 +422,38 @@ public class ImageDownloaderManager: NSObject {
 
     public func removeObserver(_ observer: ImageDownloaderObserver) {
         observerManager.removeObserver(observer)
+    }
+
+    // MARK: - Network Configuration Helpers
+
+    /// Set custom HTTP headers for all network requests
+    /// - Parameter headers: Dictionary of header key-value pairs
+    public func setCustomHeaders(_ headers: [String: String]) {
+        networkAgent.customHeaders = headers
+    }
+
+    /// Set authentication handler to modify requests before sending
+    /// - Parameter handler: Closure that modifies URLRequest (e.g., adds auth token)
+    public func setAuthenticationHandler(_ handler: @escaping (inout URLRequest) -> Void) {
+        networkAgent.authenticationHandler = handler
+    }
+
+    /// Update retry policy
+    /// - Parameter policy: The new retry policy to use
+    public func setRetryPolicy(_ policy: RetryPolicy) {
+        networkAgent.retryPolicy = policy
+    }
+
+    /// Update timeout interval
+    /// - Parameter timeout: Timeout in seconds
+    public func setTimeout(_ timeout: TimeInterval) {
+        networkAgent.timeout = timeout
+    }
+
+    /// Update cellular access setting
+    /// - Parameter allowed: Whether to allow downloads over cellular
+    public func setAllowsCellularAccess(_ allowed: Bool) {
+        networkAgent.allowsCellularAccess = allowed
     }
 
     // MARK: - Statistics

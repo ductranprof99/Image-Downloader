@@ -16,6 +16,11 @@ class NetworkAgent: NSObject {
     // MARK: - Properties
 
     var maxConcurrentDownloads: Int
+    var timeout: TimeInterval
+    var retryPolicy: RetryPolicy
+    var customHeaders: [String: String]?
+    var authenticationHandler: ((inout URLRequest) -> Void)?
+    var allowsCellularAccess: Bool
 
     private let queue: NetworkQueue
     private var session: URLSession!
@@ -26,15 +31,32 @@ class NetworkAgent: NSObject {
     private var expectedLengthMap: [Int: Int64] = [:]
     private let isolationQueue = DispatchQueue(label: "com.imagedownloader.networkagent.isolation")
 
+    // Request deduplication
+    private let deduplicator = RequestDeduplicator()
+
     // MARK: - Initialization
 
-    init(maxConcurrentDownloads: Int = 4) {
+    init(
+        maxConcurrentDownloads: Int = 4,
+        timeout: TimeInterval = 30,
+        retryPolicy: RetryPolicy = .default,
+        customHeaders: [String: String]? = nil,
+        authenticationHandler: ((inout URLRequest) -> Void)? = nil,
+        allowsCellularAccess: Bool = true
+    ) {
         self.maxConcurrentDownloads = maxConcurrentDownloads
+        self.timeout = timeout
+        self.retryPolicy = retryPolicy
+        self.customHeaders = customHeaders
+        self.authenticationHandler = authenticationHandler
+        self.allowsCellularAccess = allowsCellularAccess
         self.queue = NetworkQueue()
         super.init()
 
         let config = URLSessionConfiguration.default
         config.httpMaximumConnectionsPerHost = maxConcurrentDownloads
+        config.timeoutIntervalForRequest = timeout
+        config.allowsCellularAccess = allowsCellularAccess
         self.session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
     }
 
@@ -242,8 +264,23 @@ class NetworkAgent: NSObject {
         let urlKey = task.url.absoluteString
         activeDownloads[urlKey] = task
 
+        // Create request with custom headers and authentication
+        var request = URLRequest(url: task.url)
+        request.timeoutInterval = timeout
+        request.allowsCellularAccess = allowsCellularAccess
+
+        // Apply custom headers
+        if let customHeaders = customHeaders {
+            for (key, value) in customHeaders {
+                request.setValue(value, forHTTPHeaderField: key)
+            }
+        }
+
+        // Apply authentication handler
+        authenticationHandler?(&request)
+
         // Create data task (will use delegate methods for progress)
-        let sessionTask = session.dataTask(with: task.url)
+        let sessionTask = session.dataTask(with: request)
 
         // Map session task to our task for delegate callbacks
         let taskID = sessionTask.taskIdentifier
@@ -335,6 +372,38 @@ extension NetworkAgent: URLSessionDataDelegate {
                 }
             }
 
+            // Check if we should retry
+            if let error = finalError, image == nil {
+                task.lastError = error
+
+                if self.retryPolicy.shouldRetry(for: error, attempt: task.retryAttempt) {
+                    // Increment retry attempt
+                    task.retryAttempt += 1
+
+                    // Calculate delay
+                    let delay = self.retryPolicy.delay(forAttempt: task.retryAttempt)
+
+                    // Cleanup current session task
+                    self.taskMap.removeValue(forKey: taskID)
+                    self.dataMap.removeValue(forKey: taskID)
+                    self.expectedLengthMap.removeValue(forKey: taskID)
+
+                    // Retry after delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                        self?.isolationQueue.async { [weak self] in
+                            guard let self = self else { return }
+
+                            // Re-enqueue the task for retry
+                            self.activeDownloads.removeValue(forKey: urlKey)
+                            self.queue.enqueue(task)
+                            self.processQueue()
+                        }
+                    }
+
+                    return
+                }
+            }
+
             // Complete the task - this will notify all callbacks
             task.complete(with: image, error: finalError)
 
@@ -344,6 +413,7 @@ extension NetworkAgent: URLSessionDataDelegate {
             self.taskMap.removeValue(forKey: taskID)
             self.dataMap.removeValue(forKey: taskID)
             self.expectedLengthMap.removeValue(forKey: taskID)
+            self.deduplicator.removeTask(for: task.url)
 
             // Start next task in queue
             self.processQueue()
