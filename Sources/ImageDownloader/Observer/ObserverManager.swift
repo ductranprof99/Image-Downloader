@@ -37,7 +37,11 @@ public class ObserverManager {
             guard let self = self else { return }
             for observer in self.observers.allObjects {
                 if let observer = observer as? ImageDownloaderObserver {
-                    DispatchQueue.main.async {
+                    if observer.requiresMainThread {
+                        DispatchQueue.main.async {
+                            observer.imageDidLoad(for: url, fromCache: fromCache, fromStorage: fromStorage)
+                        }
+                    } else {
                         observer.imageDidLoad(for: url, fromCache: fromCache, fromStorage: fromStorage)
                     }
                 }
@@ -50,7 +54,11 @@ public class ObserverManager {
             guard let self = self else { return }
             for observer in self.observers.allObjects {
                 if let observer = observer as? ImageDownloaderObserver {
-                    DispatchQueue.main.async {
+                    if observer.requiresMainThread {
+                        DispatchQueue.main.async {
+                            observer.imageDidFail(for: url, error: error)
+                        }
+                    } else {
                         observer.imageDidFail(for: url, error: error)
                     }
                 }
@@ -63,7 +71,11 @@ public class ObserverManager {
             guard let self = self else { return }
             for observer in self.observers.allObjects {
                 if let observer = observer as? ImageDownloaderObserver {
-                    DispatchQueue.main.async {
+                    if observer.requiresMainThread {
+                        DispatchQueue.main.async {
+                            observer.imageDownloadProgress(for: url, progress: progress)
+                        }
+                    } else {
                         observer.imageDownloadProgress(for: url, progress: progress)
                     }
                 }
@@ -76,7 +88,11 @@ public class ObserverManager {
             guard let self = self else { return }
             for observer in self.observers.allObjects {
                 if let observer = observer as? ImageDownloaderObserver {
-                    DispatchQueue.main.async {
+                    if observer.requiresMainThread {
+                        DispatchQueue.main.async {
+                            observer.imageWillStartDownloading(for: url)
+                        }
+                    } else {
                         observer.imageWillStartDownloading(for: url)
                     }
                 }

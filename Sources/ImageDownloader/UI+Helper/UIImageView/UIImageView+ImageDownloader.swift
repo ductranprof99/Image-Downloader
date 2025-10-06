@@ -52,15 +52,19 @@ public extension UIImageView {
     /// - Parameters:
     ///   - url: Image URL to load
     ///   - config: Custom configuration (nil = use default)
-    ///   - placeholder: Placeholder image shown while loading or on error
+    ///   - placeholder: Placeholder image shown while loading
+    ///   - errorImage: Image shown on error (if nil, keeps placeholder on error)
     ///   - priority: Download priority (default: .low)
+    ///   - transformation: Optional image transformation to apply
     ///   - onProgress: Progress callback (0.0 to 1.0)
     ///   - onCompletion: Completion callback with image result
     func setImage(
         with url: URL,
         config: ImageDownloaderConfigProtocol? = nil,
         placeholder: UIImage? = nil,
+        errorImage: UIImage? = nil,
         priority: ResourcePriority = .low,
+        transformation: ImageTransformation? = nil,
         onProgress: ((CGFloat) -> Void)? = nil,
         onCompletion: ((UIImage?, Error?, Bool, Bool) -> Void)? = nil
     ) {
@@ -86,7 +90,7 @@ public extension UIImageView {
             priority: priority,
             shouldSaveToStorage: config?.storageConfig.shouldSaveToStorage ?? true,
             progress: { [weak self] progress in
-                guard let self = self else { return }
+                guard self != nil else { return }
                 DispatchQueue.main.async {
                     onProgress?(progress)
                 }
@@ -97,11 +101,20 @@ public extension UIImageView {
                 DispatchQueue.main.async {
                     // Only update if URL hasn't changed
                     if self.currentLoadingURL == url {
-                        if let image = image {
+                        if var image = image {
+                            // Apply transformation if provided
+                            if let transformation = transformation,
+                               let transformedImage = transformation.transform(image) {
+                                image = transformedImage
+                            }
                             self.image = image
-                        } else if error != nil, let placeholder = placeholder {
-                            // Keep placeholder on error
-                            self.image = placeholder
+                        } else if error != nil {
+                            // Show error image if provided, otherwise keep placeholder
+                            if let errorImage = errorImage {
+                                self.image = errorImage
+                            } else if let placeholder = placeholder {
+                                self.image = placeholder
+                            }
                         }
 
                         // Call user completion callback
@@ -137,7 +150,51 @@ public extension UIImageView {
             with: url,
             config: nil,
             placeholder: placeholder,
+            errorImage: nil,
             priority: .low,
+            transformation: nil,
+            onProgress: nil,
+            onCompletion: nil
+        )
+    }
+
+    /// Load image from URL with placeholder and error image
+    /// - Parameters:
+    ///   - url: Image URL to load
+    ///   - placeholder: Placeholder image shown while loading
+    ///   - errorImage: Image shown on error
+    func setImage(with url: URL, placeholder: UIImage?, errorImage: UIImage?) {
+        setImage(
+            with: url,
+            config: nil,
+            placeholder: placeholder,
+            errorImage: errorImage,
+            priority: .low,
+            transformation: nil,
+            onProgress: nil,
+            onCompletion: nil
+        )
+    }
+
+    /// Load image with transformation
+    /// - Parameters:
+    ///   - url: Image URL to load
+    ///   - placeholder: Placeholder image shown while loading
+    ///   - errorImage: Image shown on error (optional)
+    ///   - transformation: Transformation to apply to loaded image
+    func setImage(
+        with url: URL,
+        placeholder: UIImage?,
+        errorImage: UIImage? = nil,
+        transformation: ImageTransformation
+    ) {
+        setImage(
+            with: url,
+            config: nil,
+            placeholder: placeholder,
+            errorImage: errorImage,
+            priority: .low,
+            transformation: transformation,
             onProgress: nil,
             onCompletion: nil
         )
@@ -146,14 +203,17 @@ public extension UIImageView {
     /// Load image from URL with priority control
     /// - Parameters:
     ///   - url: Image URL to load
-    ///   - placeholder: Placeholder image shown while loading or on error
+    ///   - placeholder: Placeholder image shown while loading
+    ///   - errorImage: Image shown on error (optional)
     ///   - priority: Cache priority (.high or .low)
-    func setImage(with url: URL, placeholder: UIImage?, priority: ResourcePriority) {
+    func setImage(with url: URL, placeholder: UIImage?, errorImage: UIImage? = nil, priority: ResourcePriority) {
         setImage(
             with: url,
             config: nil,
             placeholder: placeholder,
+            errorImage: errorImage,
             priority: priority,
+            transformation: nil,
             onProgress: nil,
             onCompletion: nil
         )
@@ -162,12 +222,14 @@ public extension UIImageView {
     /// Load image from URL with progress tracking
     /// - Parameters:
     ///   - url: Image URL to load
-    ///   - placeholder: Placeholder image shown while loading or on error
+    ///   - placeholder: Placeholder image shown while loading
+    ///   - errorImage: Image shown on error (optional)
     ///   - priority: Cache priority
     ///   - onProgress: Progress callback (0.0 to 1.0)
     func setImage(
         with url: URL,
         placeholder: UIImage?,
+        errorImage: UIImage? = nil,
         priority: ResourcePriority,
         onProgress: ((CGFloat) -> Void)?
     ) {
@@ -175,7 +237,9 @@ public extension UIImageView {
             with: url,
             config: nil,
             placeholder: placeholder,
+            errorImage: errorImage,
             priority: priority,
+            transformation: nil,
             onProgress: onProgress,
             onCompletion: nil
         )
@@ -184,16 +248,20 @@ public extension UIImageView {
     /// Load image from URL with full configuration and completion
     /// - Parameters:
     ///   - url: Image URL to load
-    ///   - placeholder: Placeholder image shown while loading or on error
+    ///   - placeholder: Placeholder image shown while loading
+    ///   - errorImage: Image shown on error (optional)
     ///   - priority: Cache priority
     ///   - shouldSaveToStorage: Whether to save to disk storage
+    ///   - transformation: Optional transformation to apply
     ///   - onProgress: Progress callback (0.0 to 1.0)
     ///   - onCompletion: Completion callback with image result
     func setImage(
         with url: URL,
         placeholder: UIImage?,
+        errorImage: UIImage? = nil,
         priority: ResourcePriority,
         shouldSaveToStorage: Bool,
+        transformation: ImageTransformation? = nil,
         onProgress: ((CGFloat) -> Void)?,
         onCompletion: ((UIImage?, Error?, Bool, Bool) -> Void)?
     ) {
@@ -207,7 +275,9 @@ public extension UIImageView {
             with: url,
             config: config,
             placeholder: placeholder,
+            errorImage: errorImage,
             priority: priority,
+            transformation: transformation,
             onProgress: onProgress,
             onCompletion: onCompletion
         )

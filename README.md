@@ -5,20 +5,29 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.1.0-green.svg)](https://github.com/ductranprof99/Image-Downloader)
 
-A powerful, production-ready Swift image downloading library with advanced caching, async/await support, protocol-based injectable configuration, and full customization.
+A powerful, production-ready Swift image downloading library with advanced caching, async/await support, and clean API.
+
+## ✨ What's New in v2.1
+
+- ✅ **Configurable retry logging** - No more spam, debug when needed
+- ✅ **Placeholder & error images** - Separate images for loading/error states
+- ✅ **Pure async/await API** - No DispatchQueue mixing
+- ✅ **Image transformations** - Resize, crop, circle, rounded corners
+- ✅ **Background task support** - Downloads continue in background
+- ✅ **Automatic cancellation** - SwiftUI & UIKit cell reuse handled
+- ✅ **Clean public API** - Only ~20 public types (agents are internal)
 
 ## ✨ Features
 
-- 🚀 **Modern Swift Concurrency** - Built-in async/await support
+- 🚀 **Modern Swift Concurrency** - Pure async/await support
 - 💾 **Intelligent Caching** - Two-tier memory cache (high/low priority)
 - 📦 **Persistent Storage** - Automatic disk caching with customizable compression
-- 🎨 **Injectable Configuration** - Different configs per request (NEW in v2.1!)
-- 🔁 **Retry with Backoff** - Intelligent retry for failed downloads
+- 🎨 **Image Transformations** - Resize, crop, circle, rounded corners (NEW!)
+- 🔁 **Smart Retry** - Configurable retry with exponential backoff
 - 🔗 **Request Deduplication** - Prevents duplicate concurrent requests
 - 🔐 **Custom Headers & Auth** - Add auth tokens, API keys
-- 📡 **Network Monitoring** - WiFi/cellular status tracking
-- 🔄 **Objective-C Compatible** - Full bridging for legacy codebases
-- ⚡️ **Production Ready** - Battle-tested architecture
+- 🔄 **Automatic Cancellation** - UIKit cell reuse & SwiftUI lifecycle (NEW!)
+- ⚡️ **Production Ready** - Clean API, thread-safe, well-tested
 
 ## 🚀 Quick Start
 
@@ -35,12 +44,26 @@ dependencies: [
 ```swift
 import ImageDownloader
 
-// Async/await (modern Swift)
-let image = try await UIImage.load(from: imageURL)
-imageView.image = image
+// UIImageView extension (simple)
+imageView.setImage(with: url, placeholder: placeholderImage)
 
-// UIImageView extension
-imageView.setImage(with: imageURL, placeholder: placeholderImage)
+// With error image
+imageView.setImage(
+    with: url,
+    placeholder: UIImage(named: "loading"),
+    errorImage: UIImage(named: "error")
+)
+
+// With transformation
+imageView.setImage(
+    with: url,
+    placeholder: placeholder,
+    transformation: CircleTransformation(diameter: 80)
+)
+
+// Async/await
+let result = try await ImageDownloaderManager.shared.requestImageAsync(at: url)
+imageView.image = result.image
 ```
 
 ### With Custom Configuration
@@ -208,3 +231,29 @@ MIT License - See [LICENSE](LICENSE) file for details.
 ---
 
 **ImageDownloader** - Built for production, designed for performance. 🚀
+
+---
+
+## 📚 Documentation
+
+Complete documentation in the [markdown/](markdown/) folder:
+
+- **[ARCHITECTURE.md](markdown/ARCHITECTURE.md)** - Architecture with diagrams, threading model, design patterns
+- **[EXAMPLES.md](markdown/EXAMPLES.md)** - Code examples, patterns, cancellation, transformations
+- **[PUBLIC_API.md](markdown/PUBLIC_API.md)** - Complete API reference, what's public/internal
+- **[ROADMAP.md](markdown/ROADMAP.md)** - Future improvements and planned features
+
+---
+
+## 💡 Design Philosophy
+
+- **Simple by default** - 90% of users need simple API
+- **Customizable when needed** - Protocols for advanced customization
+- **Clean API** - Implementation details are internal (~20 public types)
+- **Production ready** - Thread-safe, well-tested, robust
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.

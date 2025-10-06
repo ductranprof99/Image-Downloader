@@ -1,321 +1,219 @@
-# ImageDownloader - Usage Examples
+# ImageDownloader - Examples
 
-Complete, ready-to-use examples for common use cases.
+Practical code examples for common use cases.
 
 ---
 
 ## Table of Contents
 
-1. [Social Media App](#social-media-app)
-2. [E-Commerce App](#e-commerce-app)
-3. [Progress Tracking in UIKit](#progress-tracking-in-uikit)
-4. [Progress Tracking in SwiftUI](#progress-tracking-in-swiftui)
-5. [Authenticated API](#authenticated-api)
-6. [UIImage Direct Loading](#uiimage-direct-loading)
-7. [UIImageView Extension](#uiimageview-extension)
-8. [Custom Configuration](#custom-configuration)
+1. [Basic Usage](#basic-usage)
+2. [Placeholder & Error Images](#placeholder--error-images)
+3. [Image Transformations](#image-transformations)
+4. [Cancellation Patterns](#cancellation-patterns)
+5. [Async/Await Usage](#asyncawait-usage)
+6. [Custom Configuration](#custom-configuration)
+7. [Complete Examples](#complete-examples)
 
 ---
 
-## Social Media App
+## Basic Usage
 
-A complete configuration setup for a social media app with different configs for avatars, feed photos, full photos, and stories.
+### UIKit - Simple
 
 ```swift
 import ImageDownloader
 
-struct SocialMediaConfig {
-    // Avatars: small, fast, high priority
-    static let avatar = ConfigBuilder()
-        .maxConcurrentDownloads(8)
-        .cacheSize(high: 150, low: 300)
-        .retryPolicy(.aggressive)
-        .compressionProvider(JPEGCompressionProvider(quality: 0.7))
-        .build()
+// Simplest form
+imageView.setImage(with: url)
 
-    // Feed photos: balanced
-    static let feed = ConfigBuilder()
-        .maxConcurrentDownloads(6)
-        .cacheSize(high: 100, low: 200)
-        .compressionProvider(JPEGCompressionProvider(quality: 0.8))
-        .build()
+// With placeholder
+imageView.setImage(
+    with: url,
+    placeholder: UIImage(named: "placeholder")
+)
+```
 
-    // Full photos: offline-first
-    static let fullPhoto = OfflineFirstConfig.shared
+### SwiftUI - Simple
 
-    // Stories: fast, low quality, don't save
-    static let story = ConfigBuilder()
-        .maxConcurrentDownloads(10)
-        .enableStorage(false)
-        .compressionProvider(JPEGCompressionProvider(quality: 0.6))
-        .build()
-}
+```swift
+import ImageDownloader
 
-// Usage in UITableViewCell
-class FeedCell: UITableViewCell {
+AsyncImageView(url: url)
+    .frame(width: 200, height: 200)
+```
+
+---
+
+## Placeholder & Error Images
+
+### UIKit
+
+```swift
+// Separate images for loading vs error
+imageView.setImage(
+    with: url,
+    placeholder: UIImage(named: "loading"),    // While loading
+    errorImage: UIImage(named: "broken_image") // On error
+)
+```
+
+### SwiftUI
+
+```swift
+AsyncImageView(
+    url: url,
+    placeholder: Image("loading"),
+    errorImage: Image("broken_image")
+)
+.frame(width: 200, height: 200)
+```
+
+---
+
+## Image Transformations
+
+### Circular Avatar
+
+```swift
+// Perfect for profile pictures
+imageView.setImage(
+    with: user.avatarURL,
+    placeholder: UIImage(named: "default_avatar"),
+    errorImage: UIImage(named: "broken_avatar"),
+    transformation: CircleTransformation(diameter: 80)
+)
+```
+
+### Rounded Corners
+
+```swift
+imageView.setImage(
+    with: url,
+    placeholder: placeholder,
+    transformation: RoundedCornersTransformation(
+        cornerRadius: 16,
+        targetSize: CGSize(width: 200, height: 200)
+    )
+)
+```
+
+### Resize with Aspect
+
+```swift
+// Aspect fill (crop to fit)
+let transform = ResizeTransformation(
+    targetSize: CGSize(width: 300, height: 200),
+    contentMode: .scaleAspectFill
+)
+
+imageView.setImage(
+    with: url,
+    placeholder: placeholder,
+    transformation: transform
+)
+
+// Aspect fit (letterbox)
+let transform = ResizeTransformation(
+    targetSize: CGSize(width: 300, height: 200),
+    contentMode: .scaleAspectFit
+)
+```
+
+### Multiple Transformations
+
+```swift
+// Chain multiple transformations
+let composite = CompositeTransformation(transformations: [
+    ResizeTransformation(targetSize: CGSize(width: 200, height: 200)),
+    CircleTransformation(diameter: 200)
+])
+
+imageView.setImage(with: url, transformation: composite)
+```
+
+---
+
+## Cancellation Patterns
+
+### UIKit - Table View Cell
+
+```swift
+class ImageCell: UITableViewCell {
     @IBOutlet weak var avatarImageView: UIImageView!
-    @IBOutlet weak var photoImageView: UIImageView!
-
-    func configure(with post: Post) {
-        avatarImageView.setImage(
-            with: post.user.avatarURL,
-            config: SocialMediaConfig.avatar,
-            placeholder: UIImage(named: "avatar_placeholder"),
-            priority: .high
-        )
-
-        photoImageView.setImage(
-            with: post.photoURL,
-            config: SocialMediaConfig.feed,
-            placeholder: UIImage(named: "photo_placeholder")
-        )
-    }
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        // Cancel previous loading
         avatarImageView.cancelImageLoading()
-        photoImageView.cancelImageLoading()
     }
-}
-```
 
----
-
-## E-Commerce App
-
-Product image loading with different configs for thumbnails, main images, and zoom views.
-
-```swift
-import ImageDownloader
-
-struct ECommerceConfig {
-    static let productThumbnail = LowMemoryConfig.shared
-    static let productImage = FastConfig.shared
-    static let productZoom = OfflineFirstConfig.shared
-}
-
-class ProductViewController: UIViewController {
-    @IBOutlet weak var thumbnailView: UIImageView!
-    @IBOutlet weak var imageView: UIImageView!
-
-    func loadProduct(_ product: Product) {
-        // Thumbnail
-        thumbnailView.setImage(
-            with: product.thumbnailURL,
-            config: ECommerceConfig.productThumbnail,
-            placeholder: UIImage(named: "product_placeholder")
-        )
-
-        // Main image with async/await
-        Task {
-            do {
-                let image = try await UIImage.load(
-                    from: product.imageURL,
-                    config: ECommerceConfig.productImage
-                )
-                imageView.image = image
-            } catch {
-                print("Failed to load product image: \(error)")
-            }
-        }
-    }
-}
-```
-
----
-
-## Progress Tracking in UIKit
-
-Complete example showing progress bar updates during image download.
-
-### UIImageView with Progress
-
-```swift
-import ImageDownloader
-
-class FeedCell: UITableViewCell {
-    @IBOutlet weak var photoImageView: UIImageView!
-    @IBOutlet weak var progressView: UIProgressView!
-    @IBOutlet weak var progressLabel: UILabel!
-
-    func configure(with post: Post) {
-        // Show progress UI
-        progressView.isHidden = false
-        progressView.progress = 0
-        progressLabel.isHidden = false
-
-        photoImageView.setImage(
-            with: post.photoURL,
-            config: FastConfig.shared,
+    func configure(with url: URL) {
+        avatarImageView.setImage(
+            with: url,
             placeholder: UIImage(named: "placeholder"),
-            onProgress: { [weak self] progress in
-                // Update progress bar
-                self?.progressView.progress = Float(progress)
-                self?.progressLabel.text = "\(Int(progress * 100))%"
-            },
-            onCompletion: { [weak self] image, error, fromCache, fromStorage in
-                // Hide progress when done
-                self?.progressView.isHidden = true
-                self?.progressLabel.isHidden = true
-
-                // If from cache, it was instant - user didn't see progress
-                if fromCache || fromStorage {
-                    print("✅ Loaded instantly from cache/storage")
-                } else {
-                    print("✅ Downloaded from network")
-                }
-
-                if let error = error {
-                    print("❌ Error: \(error)")
-                }
-            }
+            errorImage: UIImage(named: "error")
         )
     }
+}
+```
+
+### UIKit - Collection View Cell
+
+```swift
+class PhotoCell: UICollectionViewCell {
+    let imageView = UIImageView()
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        photoImageView.cancelImageLoading()
-        progressView.progress = 0
-        progressView.isHidden = true
-        progressLabel.isHidden = true
+        imageView.cancelImageLoading()
+        imageView.image = nil
     }
-}
-```
 
-### UIImage.load() with Progress
-
-```swift
-import ImageDownloader
-
-class PhotoViewController: UIViewController {
-    @IBOutlet weak var imageView: UIImageView!
-    @IBOutlet weak var progressView: UIProgressView!
-
-    var imageURL: URL!
-
-    func loadImage() {
-        progressView.isHidden = false
-        progressView.progress = 0
-
-        UIImage.load(
-            from: imageURL,
-            config: FastConfig.shared,
-            progress: { [weak self] progress in
-                self?.progressView.progress = Float(progress)
-            },
-            completion: { [weak self] result in
-                self?.progressView.isHidden = true
-
-                switch result {
-                case .success(let image):
-                    self?.imageView.image = image
-                case .failure(let error):
-                    print("Failed to load image: \(error)")
-                }
-            }
+    func configure(with url: URL) {
+        imageView.setImage(
+            with: url,
+            placeholder: UIImage(named: "placeholder"),
+            transformation: ResizeTransformation(
+                targetSize: CGSize(width: 150, height: 150),
+                contentMode: .scaleAspectFill
+            )
         )
     }
 }
 ```
 
----
-
-## Progress Tracking in SwiftUI
-
-Using `ImageLoader` ObservableObject for SwiftUI progress tracking.
+### SwiftUI - Automatic
 
 ```swift
-import SwiftUI
-import ImageDownloader
-
-struct FeedView: View {
-    let posts: [Post]
-
-    var body: some View {
-        ScrollView {
-            LazyVStack {
-                ForEach(posts) { post in
-                    FeedItemView(post: post)
-                }
-            }
-        }
-    }
+// Cancels automatically when view disappears
+List(images, id: \.url) { item in
+    AsyncImageView(url: item.url)
+        .frame(width: 60, height: 60)
+        .clipShape(Circle())
 }
+```
 
-struct FeedItemView: View {
-    let post: Post
-    @StateObject private var imageLoader = ImageLoader()
+### SwiftUI - Manual Control
 
-    var body: some View {
-        VStack(alignment: .leading) {
-            // Image with progress
-            ZStack {
-                if let image = imageLoader.image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(height: 300)
-                        .clipped()
-                } else {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 300)
-                        .overlay(
-                            VStack(spacing: 12) {
-                                ProgressView(value: imageLoader.progress, total: 1.0)
-                                    .scaleEffect(1.5)
-                                    .padding(.horizontal, 40)
-
-                                if imageLoader.progress > 0 {
-                                    Text("\(Int(imageLoader.progress * 100))%")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        )
-                }
-            }
-
-            Text(post.title)
-                .font(.headline)
-                .padding()
-        }
-        .onAppear {
-            imageLoader.load(from: post.photoURL, config: FastConfig.shared)
-        }
-        .onDisappear {
-            imageLoader.cancel()
-        }
-    }
-}
-
-// Simple photo viewer
-struct PhotoView: View {
-    let imageURL: URL
+```swift
+struct ImageView: View {
     @StateObject private var loader = ImageLoader()
+    let url: URL
 
     var body: some View {
-        VStack {
+        Group {
             if let image = loader.image {
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } else if loader.isLoading {
-                VStack(spacing: 16) {
-                    ProgressView(value: loader.progress, total: 1.0)
-                        .progressViewStyle(.linear)
-                        .frame(width: 200)
-
-                    Text("Loading \(Int(loader.progress * 100))%")
-                        .font(.caption)
-                }
-            } else if let error = loader.error {
-                Text("Error: \(error.localizedDescription)")
-                    .foregroundColor(.red)
+            } else {
+                ProgressView()
             }
         }
         .onAppear {
-            loader.load(from: imageURL)
+            loader.load(from: url)
+        }
+        .onDisappear {
+            loader.cancel()
         }
     }
 }
@@ -323,237 +221,75 @@ struct PhotoView: View {
 
 ---
 
-## Authenticated API
+## Async/Await Usage
 
-Loading images from a private API with authentication tokens and custom headers.
+### Basic
 
 ```swift
-import ImageDownloader
+Task {
+    do {
+        let result = try await ImageDownloaderManager.shared
+            .requestImageAsync(at: url)
 
-struct PrivateAPIConfig: ImageDownloaderConfigProtocol {
-    var networkConfig: NetworkConfigProtocol {
-        var config = DefaultNetworkConfig()
-        config.authenticationHandler = { request in
-            // Add bearer token
-            if let token = AuthManager.shared.accessToken {
-                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            }
-
-            // Add user agent
-            request.setValue("MyApp/1.0", forHTTPHeaderField: "User-Agent")
+        await MainActor.run {
+            imageView.image = result.image
+            print("From cache: \(result.fromCache)")
         }
-
-        config.customHeaders = [
-            "X-Client-ID": "my-client-id",
-            "X-API-Version": "v2"
-        ]
-
-        config.retryPolicy = .aggressive
-        return config
-    }
-
-    var cacheConfig: CacheConfigProtocol {
-        DefaultCacheConfig()
-    }
-
-    var storageConfig: StorageConfigProtocol {
-        DefaultStorageConfig()
+    } catch {
+        print("Error: \(error)")
     }
 }
+```
 
-// Usage
-class PrivateImageViewController: UIViewController {
-    @IBOutlet weak var imageView: UIImageView!
+### With Progress
 
-    func loadPrivateImage(url: URL) {
-        Task {
+```swift
+Task {
+    for try await event in manager.requestImageWithProgress(at: url) {
+        switch event {
+        case .progress(let value):
+            await MainActor.run {
+                progressView.progress = Float(value)
+            }
+
+        case .completed(let result):
+            await MainActor.run {
+                imageView.image = result.image
+                progressView.isHidden = true
+            }
+        }
+    }
+}
+```
+
+### With Cancellation
+
+```swift
+class ImageViewController: UIViewController {
+    private var loadTask: Task<Void, Never>?
+
+    func loadImage(url: URL) {
+        // Cancel previous task
+        loadTask?.cancel()
+
+        loadTask = Task {
             do {
-                let config = PrivateAPIConfig()
-                let image = try await UIImage.load(from: url, config: config)
-                imageView.image = image
+                let result = try await ImageDownloaderManager.shared
+                    .requestImageAsync(at: url)
+
+                guard !Task.isCancelled else { return }
+
+                await MainActor.run {
+                    imageView.image = result.image
+                }
             } catch {
-                print("Failed to load private image: \(error)")
-            }
-        }
-    }
-}
-```
-
-### Using ConfigBuilder for Auth
-
-```swift
-// Quick auth setup with ConfigBuilder
-let authConfig = ConfigBuilder()
-    .authenticationHandler { request in
-        let token = KeychainManager.getAuthToken()
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-    }
-    .customHeaders([
-        "User-Agent": "MyApp/1.0",
-        "X-API-Key": "secret_key"
-    ])
-    .retryPolicy(.aggressive)
-    .build()
-
-// Load image
-let image = try await UIImage.load(from: privateImageURL, config: authConfig)
-```
-
----
-
-## UIImage Direct Loading
-
-Using `UIImage.load()` extension for direct image loading without UIImageView.
-
-### Async/Await (Recommended)
-
-```swift
-import ImageDownloader
-
-class ImageProcessor: NSObject {
-    func processImage(from url: URL) async {
-        do {
-            // Simple load
-            let image = try await UIImage.load(from: url)
-
-            // With custom config
-            let fastImage = try await UIImage.load(
-                from: url,
-                config: FastConfig.shared,
-                priority: .high
-            )
-
-            // Process the image
-            let processed = applyFilters(to: image)
-            saveToLibrary(processed)
-        } catch {
-            print("Error loading image: \(error)")
-        }
-    }
-}
-```
-
-### Completion Handler
-
-```swift
-import ImageDownloader
-
-class ImageManager: NSObject {
-    func loadImage(from url: URL) {
-        // Simple load
-        UIImage.load(from: url) { result in
-            switch result {
-            case .success(let image):
-                print("Image loaded: \(image.size)")
-            case .failure(let error):
                 print("Error: \(error)")
             }
         }
-
-        // With progress and config
-        UIImage.load(
-            from: url,
-            config: FastConfig.shared,
-            priority: .high,
-            progress: { progress in
-                print("Loading: \(Int(progress * 100))%")
-            },
-            completion: { result in
-                switch result {
-                case .success(let image):
-                    // Use image
-                    self.cache[url] = image
-                case .failure(let error):
-                    print("Failed: \(error)")
-                }
-            }
-        )
-    }
-}
-```
-
-### String URL Support
-
-```swift
-// Load from string URL
-let urlString = "https://example.com/image.jpg"
-let image = try await UIImage.load(from: urlString)
-```
-
----
-
-## UIImageView Extension
-
-Convenient image loading directly into UIImageView with placeholders and progress.
-
-### Basic Usage
-
-```swift
-import ImageDownloaderUI
-
-class MyViewController: UIViewController {
-    @IBOutlet weak var imageView: UIImageView!
-
-    func loadSimple() {
-        // Simplest usage
-        imageView.setImage(with: imageURL)
-
-        // With placeholder
-        imageView.setImage(
-            with: imageURL,
-            placeholder: UIImage(named: "placeholder")
-        )
-
-        // With priority
-        imageView.setImage(
-            with: imageURL,
-            placeholder: placeholderImage,
-            priority: .high
-        )
-    }
-}
-```
-
-### Full Featured
-
-```swift
-import ImageDownloaderUI
-
-class AdvancedViewController: UIViewController {
-    @IBOutlet weak var imageView: UIImageView!
-    @IBOutlet weak var progressView: UIProgressView!
-
-    func loadAdvanced() {
-        imageView.setImage(
-            with: imageURL,
-            config: FastConfig.shared,
-            placeholder: UIImage(named: "placeholder"),
-            priority: .high,
-            onProgress: { [weak self] progress in
-                self?.progressView.progress = Float(progress)
-                self?.progressView.isHidden = (progress >= 1.0)
-            },
-            onCompletion: { [weak self] image, error, fromCache, fromStorage in
-                self?.progressView.isHidden = true
-
-                if fromCache {
-                    print("✅ From memory cache")
-                } else if fromStorage {
-                    print("✅ From disk storage")
-                } else {
-                    print("✅ Downloaded from network")
-                }
-
-                if let error = error {
-                    print("❌ Error: \(error)")
-                    self?.imageView.image = UIImage(named: "error_placeholder")
-                }
-            }
-        )
     }
 
-    func cancelLoading() {
-        imageView.cancelImageLoading()
+    deinit {
+        loadTask?.cancel()
     }
 }
 ```
@@ -562,133 +298,347 @@ class AdvancedViewController: UIViewController {
 
 ## Custom Configuration
 
-Creating fully custom configurations for specific needs.
-
-### Custom Config Protocol
+### Enable Retry Logging (Debug)
 
 ```swift
-import ImageDownloader
+// Enable logging to see retry attempts
+var config = DefaultNetworkConfig()
+config.retryPolicy = RetryPolicy(
+    maxRetries: 3,
+    baseDelay: 1.0,
+    backoffMultiplier: 2.0,
+    enableLogging: true  // Shows retry logs
+)
+```
 
-struct MyAppConfig: ImageDownloaderConfigProtocol {
-    var networkConfig: NetworkConfigProtocol = MyNetworkConfig()
-    var cacheConfig: CacheConfigProtocol = MyCacheConfig()
-    var storageConfig: StorageConfigProtocol = MyStorageConfig()
-    var enableDebugLogging = true
-}
+Output:
+```
+[ImageDownloader] 🔄 Retry 1/3 for image.jpg after 1.0s - Error: timeout
+[ImageDownloader] 🔄 Retry 2/3 for image.jpg after 2.0s - Error: timeout
+[ImageDownloader] ❌ Max retries (3) reached for image.jpg
+```
 
+### Custom Network Config
+
+```swift
 struct MyNetworkConfig: NetworkConfigProtocol {
-    var maxConcurrentDownloads = 8
+    var maxConcurrentDownloads: Int = 10
     var timeout: TimeInterval = 30
-    var retryPolicy = RetryPolicy.aggressive
+    var retryPolicy: RetryPolicy = RetryPolicy(
+        maxRetries: 5,
+        baseDelay: 1.0,
+        enableLogging: true
+    )
     var customHeaders: [String: String]? = [
         "User-Agent": "MyApp/1.0"
     ]
     var authenticationHandler: ((inout URLRequest) -> Void)? = { request in
-        request.setValue("Bearer \(AuthManager.token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
     }
-    var allowsCellularAccess = true
+    var allowsCellularAccess: Bool = true
+    var enableBackgroundTasks: Bool = true
 }
 
-struct MyCacheConfig: CacheConfigProtocol {
-    var highPriorityCacheSize = 200
-    var lowPriorityCacheSize = 500
+struct MyConfig: ImageDownloaderConfigProtocol {
+    var networkConfig: NetworkConfigProtocol = MyNetworkConfig()
+    var cacheConfig: CacheConfigProtocol = DefaultCacheConfig()
+    var storageConfig: StorageConfigProtocol = DefaultStorageConfig()
+    var enableDebugLogging: Bool = false
 }
 
-struct MyStorageConfig: StorageConfigProtocol {
-    var enableStorage = true
-    var compressionProvider: (any ImageCompressionProvider)? = JPEGCompressionProvider(quality: 0.85)
-    var pathProvider: (any StoragePathProvider)? = DomainHierarchicalPathProvider()
-}
-
-// Usage
-let image = try await UIImage.load(from: url, config: MyAppConfig())
+// Use it
+let manager = ImageDownloaderManager.instance(for: MyConfig())
+imageView.setImage(with: url, config: MyConfig())
 ```
 
-### App-Wide Configuration Pattern
+### Use Preset Configs
 
 ```swift
-import ImageDownloader
+// Fast config - high concurrency
+imageView.setImage(with: url, config: FastConfig())
 
-extension ImageDownloaderConfigProtocol {
-    // Different configs for different use cases
-    static let avatar = FastConfig.shared
-    static let photo = OfflineFirstConfig.shared
-    static let thumbnail = LowMemoryConfig.shared
+// Offline-first - prefers cache/storage
+imageView.setImage(with: url, config: OfflineFirstConfig())
 
-    // Environment-based config
-    static var current: ImageDownloaderConfigProtocol {
-        #if DEBUG
-        return ConfigBuilder()
-            .enableDebugLogging()
-            .timeout(60)
-            .build()
-        #else
-        return FastConfig.shared
-        #endif
-    }
-}
-
-// Usage throughout app
-avatarImageView.setImage(with: avatarURL, config: .avatar)
-photoImageView.setImage(with: photoURL, config: .photo)
-thumbImageView.setImage(with: thumbURL, config: .thumbnail)
-```
-
-### Per-Environment Configs
-
-```swift
-enum Environment {
-    case development
-    case staging
-    case production
-
-    static var current: Environment {
-        // Determine from build configuration
-        #if DEBUG
-        return .development
-        #elseif STAGING
-        return .staging
-        #else
-        return .production
-        #endif
-    }
-
-    var imageConfig: ImageDownloaderConfigProtocol {
-        switch self {
-        case .development:
-            return ConfigBuilder()
-                .enableDebugLogging()
-                .timeout(60)
-                .maxConcurrentDownloads(4)
-                .build()
-
-        case .staging:
-            return ConfigBuilder()
-                .timeout(30)
-                .maxConcurrentDownloads(6)
-                .retryPolicy(.default)
-                .build()
-
-        case .production:
-            return ConfigBuilder.fast()
-                .customHeaders([
-                    "X-App-Version": Bundle.main.version
-                ])
-                .build()
-        }
-    }
-}
-
-// Usage
-let config = Environment.current.imageConfig
-let image = try await UIImage.load(from: url, config: config)
+// Low memory - small cache
+imageView.setImage(with: url, config: LowMemoryConfig())
 ```
 
 ---
 
-## More Examples
+## Complete Examples
 
-For more examples and documentation, see:
-- [Complete Documentation](../DOCUMENTATION.md)
-- [API Reference](../DOCUMENTATION.md#api-reference)
-- [Migration Guide](../DOCUMENTATION.md#migration-guide)
+### Social Media Feed
+
+```swift
+class FeedViewController: UITableViewController {
+    var posts: [Post] = []
+
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "FeedCell", for: indexPath) as! FeedCell
+        let post = posts[indexPath.row]
+
+        cell.configure(with: post)
+
+        return cell
+    }
+}
+
+class FeedCell: UITableViewCell {
+    @IBOutlet weak var avatarImageView: UIImageView!
+    @IBOutlet weak var photoImageView: UIImageView!
+    @IBOutlet weak var usernameLabel: UILabel!
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        avatarImageView.cancelImageLoading()
+        photoImageView.cancelImageLoading()
+        avatarImageView.image = nil
+        photoImageView.image = nil
+    }
+
+    func configure(with post: Post) {
+        usernameLabel.text = post.username
+
+        // Avatar - circular, high priority
+        avatarImageView.setImage(
+            with: post.avatarURL,
+            placeholder: UIImage(named: "default_avatar"),
+            errorImage: UIImage(named: "broken_avatar"),
+            priority: .high,
+            transformation: CircleTransformation(diameter: 40)
+        )
+
+        // Photo - rectangular, normal priority
+        photoImageView.setImage(
+            with: post.photoURL,
+            placeholder: UIImage(named: "photo_placeholder"),
+            errorImage: UIImage(named: "photo_error"),
+            priority: .low
+        )
+    }
+}
+```
+
+### SwiftUI Image Grid
+
+```swift
+struct ImageGridView: View {
+    let imageURLs: [URL]
+
+    let columns = [
+        GridItem(.adaptive(minimum: 100))
+    ]
+
+    var body: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(imageURLs, id: \.self) { url in
+                    AsyncImageView(
+                        url: url,
+                        placeholder: Image(systemName: "photo"),
+                        errorImage: Image(systemName: "photo.fill")
+                    )
+                    .frame(width: 100, height: 100)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
+            .padding()
+        }
+    }
+}
+```
+
+### Progress Tracking
+
+```swift
+class ImageDetailViewController: UIViewController {
+    @IBOutlet weak var imageView: UIImageView!
+    @IBOutlet weak var progressView: UIProgressView!
+
+    var imageURL: URL!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        imageView.setImage(
+            with: imageURL,
+            placeholder: UIImage(named: "loading"),
+            priority: .high,
+            onProgress: { [weak self] progress in
+                self?.progressView.progress = Float(progress)
+            },
+            onCompletion: { [weak self] image, error, fromCache, fromStorage in
+                self?.progressView.isHidden = true
+
+                if let error = error {
+                    self?.showError(error)
+                }
+            }
+        )
+    }
+
+    func showError(_ error: Error) {
+        let alert = UIAlertController(
+            title: "Error",
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+}
+```
+
+### Observer Pattern
+
+```swift
+class ImageLoadingObserver: ImageDownloaderObserver {
+    var requiresMainThread: Bool { true }
+
+    func imageDidLoad(for url: URL, fromCache: Bool, fromStorage: Bool) {
+        let source = fromCache ? "cache" : (fromStorage ? "storage" : "network")
+        print("✅ Loaded from \(source): \(url.lastPathComponent)")
+    }
+
+    func imageDidFail(for url: URL, error: Error) {
+        print("❌ Failed: \(url.lastPathComponent) - \(error.localizedDescription)")
+    }
+
+    func imageDownloadProgress(for url: URL, progress: CGFloat) {
+        print("📥 Progress: \(url.lastPathComponent) - \(Int(progress * 100))%")
+    }
+
+    func imageWillStartDownloading(for url: URL) {
+        print("🚀 Starting: \(url.lastPathComponent)")
+    }
+}
+
+// Register observer
+let observer = ImageLoadingObserver()
+ImageDownloaderManager.shared.addObserver(observer)
+```
+
+---
+
+## Error Handling
+
+### Completion Handler
+
+```swift
+imageView.setImage(
+    with: url,
+    placeholder: placeholder,
+    onCompletion: { image, error, fromCache, fromStorage in
+        if let error = error {
+            switch error {
+            case ImageDownloaderError.networkError:
+                print("Network error")
+            case ImageDownloaderError.timeout:
+                print("Request timed out")
+            case ImageDownloaderError.cancelled:
+                print("Request cancelled")
+            case ImageDownloaderError.notFound:
+                print("Image not found (404)")
+            case ImageDownloaderError.decodingFailed:
+                print("Invalid image data")
+            default:
+                print("Unknown error: \(error)")
+            }
+        }
+    }
+)
+```
+
+### Async/Await
+
+```swift
+Task {
+    do {
+        let result = try await manager.requestImageAsync(at: url)
+        imageView.image = result.image
+    } catch ImageDownloaderError.timeout {
+        print("Timeout - retry?")
+    } catch ImageDownloaderError.networkError(let underlyingError) {
+        print("Network error: \(underlyingError)")
+    } catch {
+        print("Error: \(error)")
+    }
+}
+```
+
+---
+
+## Cache Management
+
+```swift
+// Clear low-priority cache
+ImageDownloaderManager.shared.clearLowPriorityCache()
+
+// Clear all cache
+ImageDownloaderManager.shared.clearAllCache()
+
+// Clear disk storage
+ImageDownloaderManager.shared.clearStorage { success in
+    print("Storage cleared: \(success)")
+}
+
+// Hard reset (cache + storage)
+ImageDownloaderManager.shared.hardReset()
+
+// Check stats
+let manager = ImageDownloaderManager.shared
+print("High priority cache: \(manager.cacheSizeHigh())")
+print("Low priority cache: \(manager.cacheSizeLow())")
+print("Storage size: \(manager.storageSizeBytes()) bytes")
+print("Active downloads: \(manager.activeDownloadsCount())")
+```
+
+---
+
+## Tips & Best Practices
+
+### 1. Always Cancel in Cell Reuse
+
+```swift
+override func prepareForReuse() {
+    super.prepareForReuse()
+    imageView.cancelImageLoading()  // Important!
+}
+```
+
+### 2. Use Priority Wisely
+
+```swift
+// High priority - important, visible images
+avatarImageView.setImage(with: url, priority: .high)
+
+// Low priority - thumbnails, off-screen
+thumbnailView.setImage(with: url, priority: .low)
+```
+
+### 3. Use Transformations for Performance
+
+```swift
+// Good: Transform once during download
+imageView.setImage(
+    with: url,
+    transformation: ResizeTransformation(targetSize: size)
+)
+
+// Less efficient: Transform manually after download
+manager.requestImage(at: url) { image, _, _, _ in
+    let resized = image?.resized(to: size)
+    imageView.image = resized
+}
+```
+
+### 4. Enable Logging During Development
+
+```swift
+#if DEBUG
+let policy = RetryPolicy(maxRetries: 3, baseDelay: 1.0, enableLogging: true)
+#else
+let policy = RetryPolicy.default
+#endif
+```

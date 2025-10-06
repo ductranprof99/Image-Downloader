@@ -24,7 +24,7 @@ public enum ResourceState {
     case high
 }
 
-public class ResourceModel {
+internal class ResourceModel {
 
     // MARK: - Properties
 

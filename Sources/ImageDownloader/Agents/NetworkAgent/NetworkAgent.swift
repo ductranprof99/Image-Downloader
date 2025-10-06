@@ -11,7 +11,7 @@ import UIKit
 #endif
 
 
-class NetworkAgent: NSObject {
+internal class NetworkAgent: NSObject {
 
     // MARK: - Properties
 
@@ -21,6 +21,7 @@ class NetworkAgent: NSObject {
     var customHeaders: [String: String]?
     var authenticationHandler: ((inout URLRequest) -> Void)?
     var allowsCellularAccess: Bool
+    var enableBackgroundTasks: Bool
 
     private let queue: NetworkQueue
     private var session: URLSession!
@@ -34,6 +35,11 @@ class NetworkAgent: NSObject {
     // Request deduplication
     private let deduplicator = RequestDeduplicator()
 
+    #if canImport(UIKit)
+    // Background task management
+    private let backgroundTaskManager = BackgroundTaskManager()
+    #endif
+
     // MARK: - Initialization
 
     init(
@@ -42,7 +48,8 @@ class NetworkAgent: NSObject {
         retryPolicy: RetryPolicy = .default,
         customHeaders: [String: String]? = nil,
         authenticationHandler: ((inout URLRequest) -> Void)? = nil,
-        allowsCellularAccess: Bool = true
+        allowsCellularAccess: Bool = true,
+        enableBackgroundTasks: Bool = true
     ) {
         self.maxConcurrentDownloads = maxConcurrentDownloads
         self.timeout = timeout
@@ -50,6 +57,7 @@ class NetworkAgent: NSObject {
         self.customHeaders = customHeaders
         self.authenticationHandler = authenticationHandler
         self.allowsCellularAccess = allowsCellularAccess
+        self.enableBackgroundTasks = enableBackgroundTasks
         self.queue = NetworkQueue()
         super.init()
 
@@ -264,6 +272,13 @@ class NetworkAgent: NSObject {
         let urlKey = task.url.absoluteString
         activeDownloads[urlKey] = task
 
+        #if canImport(UIKit)
+        // Begin background task if enabled
+        if enableBackgroundTasks {
+            backgroundTaskManager.beginBackgroundTask(for: task.url)
+        }
+        #endif
+
         // Create request with custom headers and authentication
         var request = URLRequest(url: task.url)
         request.timeoutInterval = timeout
@@ -376,7 +391,7 @@ extension NetworkAgent: URLSessionDataDelegate {
             if let error = finalError, image == nil {
                 task.lastError = error
 
-                if self.retryPolicy.shouldRetry(for: error, attempt: task.retryAttempt) {
+                if self.retryPolicy.shouldRetry(for: error, attempt: task.retryAttempt, url: task.url) {
                     // Increment retry attempt
                     task.retryAttempt += 1
 
@@ -388,8 +403,8 @@ extension NetworkAgent: URLSessionDataDelegate {
                     self.dataMap.removeValue(forKey: taskID)
                     self.expectedLengthMap.removeValue(forKey: taskID)
 
-                    // Retry after delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                    // Retry after delay on a background queue (not main queue to avoid blocking UI)
+                    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + delay) { [weak self] in
                         self?.isolationQueue.async { [weak self] in
                             guard let self = self else { return }
 
@@ -415,8 +430,26 @@ extension NetworkAgent: URLSessionDataDelegate {
             self.expectedLengthMap.removeValue(forKey: taskID)
             self.deduplicator.removeTask(for: task.url)
 
+            #if canImport(UIKit)
+            // End background task
+            if self.enableBackgroundTasks {
+                self.backgroundTaskManager.endBackgroundTask(for: task.url)
+            }
+            #endif
+
             // Start next task in queue
             self.processQueue()
         }
+    }
+}
+
+// MARK: - Cleanup
+
+extension NetworkAgent {
+    /// Clean up all active downloads (call on app termination)
+    func cleanup() {
+        #if canImport(UIKit)
+        backgroundTaskManager.endAllBackgroundTasks()
+        #endif
     }
 }

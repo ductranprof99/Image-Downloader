@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		306B5C322E93D1C100E2514E /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 306B5C312E93D1C100E2514E /* ImageDownloader */; };
+		3059359A2E93D86400E04E91 /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 305935992E93D86400E04E91 /* ImageDownloader */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,7 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				306B5C322E93D1C100E2514E /* ImageDownloader in Frameworks */,
+				3059359A2E93D86400E04E91 /* ImageDownloader in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,6 +85,7 @@
 			packageProductDependencies = (
 				306B5C162E93D10200E2514E /* ImageDownloader */,
 				306B5C312E93D1C100E2514E /* ImageDownloader */,
+				305935992E93D86400E04E91 /* ImageDownloader */,
 			);
 			productName = TestLibUIKit;
 			productReference = 306B5BA62E93BD9800E2514E /* TestLibUIKit.app */;
@@ -115,7 +116,7 @@
 			mainGroup = 306B5B9D2E93BD9800E2514E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				306B5C302E93D1C100E2514E /* XCLocalSwiftPackageReference "../../../../Image-Downloader" */,
+				305935982E93D86400E04E91 /* XCLocalSwiftPackageReference "../../../../Image-Downloader" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 306B5BA72E93BD9800E2514E /* Products */;
@@ -345,13 +346,17 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		306B5C302E93D1C100E2514E /* XCLocalSwiftPackageReference "../../../../Image-Downloader" */ = {
+		305935982E93D86400E04E91 /* XCLocalSwiftPackageReference "../../../../Image-Downloader" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../../../Image-Downloader";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		305935992E93D86400E04E91 /* ImageDownloader */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ImageDownloader;
+		};
 		306B5C162E93D10200E2514E /* ImageDownloader */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ImageDownloader;

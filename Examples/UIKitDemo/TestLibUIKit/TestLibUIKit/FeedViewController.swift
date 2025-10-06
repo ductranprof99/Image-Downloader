@@ -33,6 +33,26 @@ class FeedViewController: UIViewController {
         return refresh
     }()
 
+    private lazy var clearButton: UIBarButtonItem = {
+        let menu = UIMenu(title: "", children: [
+            UIAction(title: "Clear Memory Cache", image: UIImage(systemName: "memorychip"), handler: { [weak self] _ in
+                self?.clearMemoryCache()
+            }),
+            UIAction(title: "Clear Disk Storage", image: UIImage(systemName: "internaldrive"), handler: { [weak self] _ in
+                self?.clearDiskStorage()
+            }),
+            UIAction(title: "Clear Everything", image: UIImage(systemName: "trash"), attributes: .destructive, handler: { [weak self] _ in
+                self?.clearEverything()
+            })
+        ])
+        
+        let button = UIBarButtonItem(
+            image: UIImage(systemName: "trash"),
+            menu: menu
+        )
+        return button
+    }()
+
     private lazy var statsButton: UIBarButtonItem = {
         UIBarButtonItem(
             image: UIImage(systemName: "chart.bar"),
@@ -50,6 +70,28 @@ class FeedViewController: UIViewController {
             action: #selector(showConfigPicker)
         )
     }()
+    
+    private lazy var floatingButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.backgroundColor = .systemBlue
+        button.tintColor = .white
+        button.layer.cornerRadius = 28
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
+        button.layer.shadowOpacity = 0.25
+        
+        // Create a configuration for the button
+        var config = UIButton.Configuration.filled()
+        config.image = UIImage(systemName: "internaldrive")
+        config.imagePadding = 8
+        config.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16)
+        button.configuration = config
+        
+        button.addTarget(self, action: #selector(floatingButtonTapped), for: .touchUpInside)
+        return button
+    }()
 
     // MARK: - Lifecycle
 
@@ -65,15 +107,21 @@ class FeedViewController: UIViewController {
         title = "Image Feed"
         view.backgroundColor = .systemBackground
 
-        navigationItem.rightBarButtonItems = [statsButton, configButton]
+        navigationItem.rightBarButtonItems = [clearButton, statsButton, configButton]
 
         view.addSubview(tableView)
+        view.addSubview(floatingButton)
 
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            floatingButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            floatingButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+            floatingButton.widthAnchor.constraint(equalToConstant: 56),
+            floatingButton.heightAnchor.constraint(equalToConstant: 56)
         ])
     }
 
@@ -91,6 +139,77 @@ class FeedViewController: UIViewController {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.refreshControl.endRefreshing()
+        }
+    }
+
+    private func clearMemoryCache() {
+        ImageDownloaderManager.shared.clearAllCache()
+        showToast(message: "Memory cache cleared")
+        tableView.reloadData()
+    }
+
+    private func clearDiskStorage() {
+        ImageDownloaderManager.shared.clearStorage { [weak self] success in
+            DispatchQueue.main.async {
+                if success {
+                    self?.showToast(message: "Disk storage cleared")
+                    self?.tableView.reloadData()
+                } else {
+                    self?.showToast(message: "Failed to clear disk storage", isError: true)
+                }
+            }
+        }
+    }
+
+    private func clearEverything() {
+        ImageDownloaderManager.shared.hardReset()
+        showToast(message: "All caches cleared")
+        tableView.reloadData()
+    }
+    
+    @objc private func floatingButtonTapped() {
+        // Add a small scale animation
+        UIView.animate(withDuration: 0.1, animations: {
+            self.floatingButton.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+        }) { _ in
+            UIView.animate(withDuration: 0.1) {
+                self.floatingButton.transform = .identity
+            }
+        }
+        
+        // Call clear disk storage
+        clearDiskStorage()
+    }
+
+    private func showToast(message: String, isError: Bool = false) {
+        let toast = UILabel()
+        toast.text = message
+        toast.textAlignment = .center
+        toast.font = .systemFont(ofSize: 14, weight: .medium)
+        toast.textColor = .white
+        toast.backgroundColor = isError ? .systemRed : .systemGreen
+        toast.alpha = 0
+        toast.layer.cornerRadius = 10
+        toast.clipsToBounds = true
+        toast.translatesAutoresizingMaskIntoConstraints = false
+        
+        view.addSubview(toast)
+        
+        NSLayoutConstraint.activate([
+            toast.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            toast.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+            toast.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, constant: -40),
+            toast.heightAnchor.constraint(equalToConstant: 40)
+        ])
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseIn, animations: {
+            toast.alpha = 1
+        }) { _ in
+            UIView.animate(withDuration: 0.3, delay: 1.5, options: .curveEaseOut, animations: {
+                toast.alpha = 0
+            }) { _ in
+                toast.removeFromSuperview()
+            }
         }
     }
 
@@ -205,7 +324,7 @@ extension FeedViewController: UITableViewDelegate {
         let clearAction = UIContextualAction(style: .destructive, title: "Clear Cache") { [weak self] _, _, completion in
             let item = self?.imageItems[indexPath.row]
             if let url = item?.url {
-//                ImageDownloaderManager.shared.clearCache(for: url)
+                ImageDownloaderManager.shared.clearAllCache()
                 tableView.reloadRows(at: [indexPath], with: .automatic)
             }
             completion(true)

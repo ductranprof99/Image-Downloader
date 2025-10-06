@@ -28,8 +28,11 @@ open class UIAsyncImageView: UIImageView {
 
     // MARK: - Configuration Properties
 
-    /// Placeholder image shown while loading or on error
+    /// Placeholder image shown while loading
     open var placeholderImage: UIImage?
+
+    /// Error image shown when loading fails (if nil, keeps placeholder on error)
+    open var errorImage: UIImage?
 
     /// Current image URL being loaded
     private(set) public var imageURL: URL?
@@ -96,6 +99,22 @@ open class UIAsyncImageView: UIImageView {
         loadImage(
             from: url,
             placeholder: placeholder,
+            errorImage: errorImage,
+            priority: priority,
+            shouldSaveToStorage: shouldSaveToStorage
+        )
+    }
+
+    /// Load image from URL with placeholder and error image
+    /// - Parameters:
+    ///   - url: Image URL to load
+    ///   - placeholder: Placeholder image to show while loading
+    ///   - errorImage: Image to show on error
+    open func loadImage(from url: URL, placeholder: UIImage?, errorImage: UIImage?) {
+        loadImage(
+            from: url,
+            placeholder: placeholder,
+            errorImage: errorImage,
             priority: priority,
             shouldSaveToStorage: shouldSaveToStorage
         )
@@ -105,11 +124,13 @@ open class UIAsyncImageView: UIImageView {
     /// - Parameters:
     ///   - url: Image URL to load
     ///   - placeholder: Placeholder image to show while loading
+    ///   - errorImage: Image to show on error (optional)
     ///   - priority: Cache priority
     ///   - shouldSaveToStorage: Whether to save to disk storage
     open func loadImage(
         from url: URL,
         placeholder: UIImage?,
+        errorImage: UIImage? = nil,
         priority: ResourcePriority,
         shouldSaveToStorage: Bool
     ) {
@@ -147,9 +168,13 @@ open class UIAsyncImageView: UIImageView {
 
                         if let image = image {
                             self.image = image
-                        } else if error != nil, let placeholder = placeholder {
-                            // Keep placeholder on error
-                            self.image = placeholder
+                        } else if error != nil {
+                            // Show error image if provided, otherwise keep placeholder
+                            if let errorImage = errorImage {
+                                self.image = errorImage
+                            } else if let placeholder = placeholder {
+                                self.image = placeholder
+                            }
                         }
 
                         // Call user completion callback

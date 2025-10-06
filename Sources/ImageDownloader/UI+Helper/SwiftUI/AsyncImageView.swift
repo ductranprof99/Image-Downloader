@@ -14,6 +14,7 @@ import UIKit
 #endif
 
 /// SwiftUI view for loading images with progress tracking
+/// Features automatic cancellation on disappear
 @available(iOS 15.0, macOS 10.15, *)
 public struct AsyncImageView: View {
 
@@ -22,12 +23,14 @@ public struct AsyncImageView: View {
     private let url: URL
     private let config: ImageDownloaderConfigProtocol?
     private let placeholder: Image?
+    private let errorImage: Image?
     private let priority: ResourcePriority
 
     @State private var loadedImage: UIImage?
     @State private var isLoading = true
     @State private var loadProgress: CGFloat = 0.0
     @State private var error: Error?
+    @State private var loadingTask: Task<Void, Never>?
 
     // MARK: - Initialization
 
@@ -35,11 +38,13 @@ public struct AsyncImageView: View {
         url: URL,
         config: ImageDownloaderConfigProtocol? = nil,
         placeholder: Image? = nil,
+        errorImage: Image? = nil,
         priority: ResourcePriority = .low
     ) {
         self.url = url
         self.config = config
         self.placeholder = placeholder
+        self.errorImage = errorImage
         self.priority = priority
     }
 
@@ -66,14 +71,23 @@ public struct AsyncImageView: View {
             } else if error != nil {
                 // Error state
                 ZStack {
-                    Color.red.opacity(0.1)
-                    Image(systemName: "exclamationmark.triangle")
-                        .foregroundColor(.red)
+                    if let errorImage = errorImage {
+                        errorImage
+                            .resizable()
+                    } else {
+                        Color.red.opacity(0.1)
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.red)
+                    }
                 }
             }
         }
-        .task {
+        .task(id: url) {
             await loadImage()
+        }
+        .onDisappear {
+            // Cancel loading when view disappears
+            cancelLoading()
         }
     }
 
@@ -81,44 +95,57 @@ public struct AsyncImageView: View {
 
     @MainActor
     private func loadImage() async {
+        // Cancel any existing task
+        cancelLoading()
+
         isLoading = true
         loadProgress = 0.0
+        error = nil
 
-        do {
-            // Use async/await for cleaner code
-            let manager = ImageDownloaderManager.instance(for: config)
+        // Create new loading task
+        loadingTask = Task {
+            do {
+                let manager = ImageDownloaderManager.instance(for: config)
 
-            // Create a manual progress tracking task
-            let progressTask = Task<Void, Never> {
-                // Poll for progress updates
-                // Note: This is a workaround until we have async progress APIs
-                for _ in 0..<100 {
-                    try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
-                    // Progress is estimated based on time for now
-                    // In a real implementation, we'd get actual progress from the manager
-                    if !Task.isCancelled {
-                        loadProgress = min(loadProgress + 0.01, 0.9)
-                    } else {
-                        break
-                    }
+                // Use pure async API if available
+                if #available(iOS 15.0, *) {
+                    let result = try await manager.requestImageAsync(at: url, priority: priority)
+
+                    // Check if task was cancelled
+                    guard !Task.isCancelled else { return }
+
+                    loadedImage = result.image
+                    loadProgress = 1.0
+                    isLoading = false
+                } else {
+                    // Fallback for older iOS versions
+                    let result = try await manager.requestImage(at: url, priority: priority)
+
+                    guard !Task.isCancelled else { return }
+
+                    loadedImage = result.image
+                    loadProgress = 1.0
+                    isLoading = false
                 }
+
+            } catch is CancellationError {
+                // Task was cancelled, do nothing
+                return
+            } catch {
+                guard !Task.isCancelled else { return }
+                self.error = error
+                isLoading = false
             }
-
-            // Load the actual image
-            let result = try await manager.requestImage(at: url, priority: priority)
-
-            // Cancel progress polling
-            progressTask.cancel()
-
-            // Update state
-            loadedImage = result.image
-            loadProgress = 1.0
-            isLoading = false
-
-        } catch {
-            self.error = error
-            isLoading = false
         }
+    }
+
+    private func cancelLoading() {
+        loadingTask?.cancel()
+        loadingTask = nil
+
+        // Also cancel in the manager
+        let manager = ImageDownloaderManager.instance(for: config)
+        manager.cancelAllRequests(for: url)
     }
 }
 
@@ -182,6 +209,10 @@ public class ImageLoader: ObservableObject {
 }
 
 /// SwiftUI view using ImageLoader for progress tracking
+/// Features:
+/// - Automatic cancellation on disappear
+/// - URL change detection with automatic cancel/reload
+/// - Progress tracking
 @available(iOS 15.0, macOS 10.15, *)
 public struct ProgressiveAsyncImage<Content: View, Placeholder: View>: View {
 
@@ -222,7 +253,13 @@ public struct ProgressiveAsyncImage<Content: View, Placeholder: View>: View {
         .onAppear {
             loader.load(from: url, config: config, priority: priority)
         }
+        .onChange(of: url) { newURL in
+            // Cancel previous and load new URL
+            loader.cancel()
+            loader.load(from: newURL, config: config, priority: priority)
+        }
         .onDisappear {
+            // Cancel loading when view disappears (e.g., scrolling out of view)
             loader.cancel()
         }
     }

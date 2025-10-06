@@ -24,18 +24,23 @@ public struct RetryPolicy {
     /// Maximum delay cap (in seconds) to prevent extremely long delays
     public let maxDelay: TimeInterval
 
+    /// Enable detailed logging for retry attempts (default: false)
+    public let enableLogging: Bool
+
     // MARK: - Initialization
 
     public init(
         maxRetries: Int,
         baseDelay: TimeInterval,
         backoffMultiplier: Double = 2.0,
-        maxDelay: TimeInterval = 60.0
+        maxDelay: TimeInterval = 60.0,
+        enableLogging: Bool = false
     ) {
         self.maxRetries = maxRetries
         self.baseDelay = baseDelay
         self.backoffMultiplier = backoffMultiplier
         self.maxDelay = maxDelay
+        self.enableLogging = enableLogging
     }
 
     // MARK: - Presets
@@ -91,12 +96,29 @@ public struct RetryPolicy {
     /// - Parameters:
     ///   - error: The error that occurred
     ///   - attempt: The current attempt number (0 = first attempt, 1 = first retry, etc.)
+    ///   - url: Optional URL for logging context
     /// - Returns: Whether a retry should be attempted
-    public func shouldRetry(for error: Error, attempt: Int) -> Bool {
-        guard attempt < maxRetries else { return false }
+    public func shouldRetry(for error: Error, attempt: Int, url: URL? = nil) -> Bool {
+        guard attempt < maxRetries else {
+            if enableLogging {
+                print("[ImageDownloader] ❌ Max retries (\(maxRetries)) reached for \(url?.absoluteString ?? "unknown")")
+            }
+            return false
+        }
 
         // Check if the error is retryable
-        return isRetryableError(error)
+        let shouldRetry = isRetryableError(error)
+
+        if enableLogging {
+            if shouldRetry {
+                let delay = delay(forAttempt: attempt + 1)
+                print("[ImageDownloader] 🔄 Retry \(attempt + 1)/\(maxRetries) for \(url?.absoluteString ?? "unknown") after \(String(format: "%.1f", delay))s - Error: \(error.localizedDescription)")
+            } else {
+                print("[ImageDownloader] ⚠️ Non-retryable error for \(url?.absoluteString ?? "unknown"): \(error.localizedDescription)")
+            }
+        }
+
+        return shouldRetry
     }
 
     // MARK: - Private Methods

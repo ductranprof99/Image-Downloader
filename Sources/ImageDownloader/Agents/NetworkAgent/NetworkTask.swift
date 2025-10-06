@@ -11,7 +11,7 @@ import UIKit
 #endif
 
 
-public enum NetworkTaskState {
+internal enum NetworkTaskState {
     case new
     case downloading
     case completed
@@ -19,7 +19,7 @@ public enum NetworkTaskState {
     case cancelled
 }
 
-class NetworkTaskCallback {
+internal class NetworkTaskCallback {
     let queue: DispatchQueue
     let progressBlock: ((CGFloat) -> Void)?
     let completion: ((UIImage?, Error?) -> Void)?
@@ -38,7 +38,7 @@ class NetworkTaskCallback {
     }
 }
 
-class NetworkTask {
+internal class NetworkTask {
 
     // MARK: - Properties
 

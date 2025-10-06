@@ -15,29 +15,26 @@ public typealias ImageProgressBlock = (CGFloat) -> Void
 
 @objc @objcMembers
 public class ImageDownloaderManager: NSObject {
-
-    // MARK: - Properties
-
-    public private(set) var observerManager: ObserverManager
-    public private(set) var configuration: ImageDownloaderConfiguration
-
-    private var cacheAgent: CacheAgent
-    private var storageAgent: StorageAgent
-    private var networkAgent: NetworkAgent
-    private let managerQueue = DispatchQueue(label: "com.imagedownloader.manager.queue")
-
+    // MARK: - Library private Properties
+    var cacheAgent: CacheAgent
+    var storageAgent: StorageAgent
+    var networkAgent: NetworkAgent
+    let managerQueue = DispatchQueue(label: "com.imagedownloader.manager.queue")
     // Store identifier provider for ResourceModel creation
     private var identifierProvider: ResourceIdentifierProvider
-
-    // MARK: - Singleton & Factory
-
-    /// Shared singleton instance with default configuration
-    public static let shared = ImageDownloaderManager()
-
     /// Manager instances cache for custom configurations
     private static var instances: [String: ImageDownloaderManager] = [:]
     private static let instancesLock = NSLock()
-
+    
+    
+    // MARK: - Library public property
+    public private(set) var observerManager: ObserverManager
+    public private(set) var configuration: ImageDownloaderConfiguration
+    
+    /// Singleton & Factory
+    /// Shared singleton instance with default configuration
+    public static let shared = ImageDownloaderManager()
+    
     /// Get or create a manager instance for a specific configuration
     /// - Parameter config: Custom configuration (nil = use shared instance)
     /// - Returns: ImageDownloaderManager configured with the specified config
@@ -45,25 +42,25 @@ public class ImageDownloaderManager: NSObject {
         guard let config = config else {
             return shared
         }
-
+        
         // Create a unique key for this configuration
         let configKey = String(describing: type(of: config))
-
+        
         instancesLock.lock()
         defer { instancesLock.unlock() }
-
+        
         if let existing = instances[configKey] {
             return existing
         }
-
+        
         // Create new instance with custom config
         let manager = ImageDownloaderManager(config: config)
         instances[configKey] = manager
         return manager
     }
-
+    
     // MARK: - Initialization
-
+    
     /// Private initializer for singleton
     private override init() {
         // Default configuration
@@ -85,34 +82,34 @@ public class ImageDownloaderManager: NSObject {
             allowsCellularAccess: true
         )
         self.observerManager = ObserverManager()
-
+        
         super.init()
-
+        
         self.cacheAgent.delegate = self
     }
-
+    
     /// Internal initializer with injectable protocol-based configuration
     internal init(config: ImageDownloaderConfigProtocol) {
         // Convert protocol config to legacy format
         let legacyConfig = config.toLegacyConfiguration()
         self.configuration = legacyConfig
-
+        
         // Store identifier provider
         self.identifierProvider = config.storageConfig.identifierProvider
-
+        
         // Initialize agents with protocol config
         self.cacheAgent = CacheAgent(
             highPriorityLimit: config.cacheConfig.highPriorityLimit,
             lowPriorityLimit: config.cacheConfig.lowPriorityLimit
         )
-
+        
         self.storageAgent = StorageAgent(
             storagePath: config.storageConfig.storagePath,
             identifierProvider: config.storageConfig.identifierProvider,
             pathProvider: config.storageConfig.pathProvider,
             compressionProvider: config.storageConfig.compressionProvider
         )
-
+        
         self.networkAgent = NetworkAgent(
             maxConcurrentDownloads: config.networkConfig.maxConcurrentDownloads,
             timeout: config.networkConfig.timeout,
@@ -121,367 +118,40 @@ public class ImageDownloaderManager: NSObject {
             authenticationHandler: config.networkConfig.authenticationHandler,
             allowsCellularAccess: config.networkConfig.allowsCellularAccess
         )
-
+        
         self.observerManager = ObserverManager()
-
+        
         super.init()
-
+        
         self.cacheAgent.delegate = self
     }
+}
 
-    // MARK: - Configuration
 
-    /// Configure the manager with Swift configuration struct
-    public func configure(_ configuration: ImageDownloaderConfiguration) {
+// MARK: - CacheAgentDelegate
+
+extension ImageDownloaderManager: CacheAgentDelegate {
+    public func cacheDidEvictImage(for url: URL, priority: CachePriority) {
+        // When high priority cache evicts an image, we could save it to storage
+        // For now, we assume images are already saved during download if needed
+        if priority == .high {
+            // In production, you might want to implement saving evicted high-priority images
+        }
+    }
+}
+
+
+// MARK: - Library private Methods
+extension ImageDownloaderManager {
+    func setConfiguration(_ configuration: ImageDownloaderConfiguration) {
         self.configuration = configuration
-
+        
         // Store identifier provider for ResourceModel creation
         self.identifierProvider = configuration.identifierProvider
-
-        // Update agents with new configuration
-        cacheAgent = CacheAgent(
-            highPriorityLimit: configuration.highCachePriority,
-            lowPriorityLimit: configuration.lowCachePriority
-        )
-        cacheAgent.delegate = self
-
-        // Recreate StorageAgent with providers from configuration
-        storageAgent = StorageAgent(
-            storagePath: configuration.storagePath,
-            identifierProvider: configuration.identifierProvider,
-            pathProvider: configuration.pathProvider,
-            compressionProvider: configuration.compressionProvider
-        )
-        networkAgent = NetworkAgent(
-            maxConcurrentDownloads: configuration.maxConcurrentDownloads,
-            timeout: configuration.timeout,
-            retryPolicy: configuration.retryPolicy,
-            customHeaders: configuration.customHeaders,
-            authenticationHandler: configuration.authenticationHandler,
-            allowsCellularAccess: configuration.allowsCellularAccess
-        )
     }
-
-    /// Configure the manager with Objective-C configuration object
-    @objc public func configure(_ configuration: IDConfiguration) {
-        configure(configuration.toSwiftConfiguration())
-    }
-
-    /// Legacy configuration method (deprecated but kept for backward compatibility)
-    @available(*, deprecated, message: "Use configure(_:) with ImageDownloaderConfiguration instead")
-    public func configure(
-        maxConcurrentDownloads: Int,
-        highCachePriority: Int,
-        lowCachePriority: Int,
-        storagePath: String?
-    ) {
-        let config = ImageDownloaderConfiguration(
-            maxConcurrentDownloads: maxConcurrentDownloads,
-            highCachePriority: highCachePriority,
-            lowCachePriority: lowCachePriority,
-            storagePath: storagePath
-        )
-        configure(config)
-    }
-
-    // MARK: - Main API
-
-    // MARK: Async/Await API (Swift)
-
-    /// Request an image resource using async/await (Swift-only)
-    @available(iOS 13.0, macOS 10.15, *)
-    public func requestImage(
-        at url: URL,
-        priority: ResourcePriority = .low,
-        shouldSaveToStorage: Bool? = nil,
-        progress: ImageProgressBlock? = nil,
-        caller: AnyObject? = nil
-    ) async throws -> ImageResult {
-        let saveToStorage = shouldSaveToStorage ?? configuration.shouldSaveToStorage
-
-        return try await withCheckedThrowingContinuation { continuation in
-            var isResumed = false
-
-            requestImage(
-                at: url,
-                priority: priority,
-                shouldSaveToStorage: saveToStorage,
-                progress: progress,
-                completion: { image, error, fromCache, fromStorage in
-                    guard !isResumed else { return }
-                    isResumed = true
-
-                    if let image = image {
-                        let result = ImageResult(
-                            image: image,
-                            url: url,
-                            fromCache: fromCache,
-                            fromStorage: fromStorage
-                        )
-                        continuation.resume(returning: result)
-                    } else if let error = error {
-                        let downloaderError = self.convertToImageDownloaderError(error)
-                        continuation.resume(throwing: downloaderError)
-                    } else {
-                        continuation.resume(throwing: ImageDownloaderError.unknown(
-                            NSError(domain: "ImageDownloader", code: -1, userInfo: [
-                                NSLocalizedDescriptionKey: "Unknown error occurred"
-                            ])
-                        ))
-                    }
-                },
-                caller: caller
-            )
-        }
-    }
-
-    /// Force reload using async/await (Swift-only)
-    @available(iOS 13.0, macOS 10.15, *)
-    public func forceReloadImage(
-        at url: URL,
-        priority: ResourcePriority = .low,
-        shouldSaveToStorage: Bool? = nil,
-        progress: ImageProgressBlock? = nil,
-        caller: AnyObject? = nil
-    ) async throws -> ImageResult {
-        let saveToStorage = shouldSaveToStorage ?? configuration.shouldSaveToStorage
-
-        return try await withCheckedThrowingContinuation { continuation in
-            var isResumed = false
-
-            forceReloadImage(
-                at: url,
-                priority: priority,
-                shouldSaveToStorage: saveToStorage,
-                progress: progress,
-                completion: { image, error, fromCache, fromStorage in
-                    guard !isResumed else { return }
-                    isResumed = true
-
-                    if let image = image {
-                        let result = ImageResult(
-                            image: image,
-                            url: url,
-                            fromCache: fromCache,
-                            fromStorage: fromStorage
-                        )
-                        continuation.resume(returning: result)
-                    } else if let error = error {
-                        let downloaderError = self.convertToImageDownloaderError(error)
-                        continuation.resume(throwing: downloaderError)
-                    } else {
-                        continuation.resume(throwing: ImageDownloaderError.unknown(
-                            NSError(domain: "ImageDownloader", code: -1, userInfo: [
-                                NSLocalizedDescriptionKey: "Unknown error occurred"
-                            ])
-                        ))
-                    }
-                },
-                caller: caller
-            )
-        }
-    }
-
-    // MARK: Completion Handler API (Objective-C Compatible)
-
-    /// Request an image resource with full control over priority, storage, and callbacks
-    @objc public func requestImage(
-        at url: URL,
-        priority: ResourcePriority = .low,
-        shouldSaveToStorage: Bool = true,
-        progress: ImageProgressBlock? = nil,
-        completion: ImageCompletionBlock? = nil,
-        caller: AnyObject? = nil
-    ) {
-        managerQueue.async { [weak self] in
-            guard let self = self else { return }
-
-            // Step 1: Check cache
-            if let cachedImage = self.cacheAgent.image(for: url) {
-                self.observerManager.notifyImageDidLoad(url: url, fromCache: true, fromStorage: false)
-
-                // Report instant progress for cached images
-                if let progress = progress {
-                    DispatchQueue.main.async {
-                        progress(1.0)
-                    }
-                }
-
-                if let completion = completion {
-                    DispatchQueue.main.async {
-                        completion(cachedImage, nil, true, false)
-                    }
-                }
-                return
-            }
-
-            // Step 2: Check storage
-            self.storageAgent.image(for: url) { [weak self] storageImage in
-                guard let self = self else { return }
-
-                if let storageImage = storageImage {
-                    // Put in cache for fast access next time
-                    let cachePriority: CachePriority = (priority == .high) ? .high : .low
-                    self.cacheAgent.setImage(storageImage, for: url, priority: cachePriority)
-
-                    self.observerManager.notifyImageDidLoad(url: url, fromCache: false, fromStorage: true)
-
-                    // Report instant progress for storage images
-                    if let progress = progress {
-                        DispatchQueue.main.async {
-                            progress(1.0)
-                        }
-                    }
-
-                    if let completion = completion {
-                        DispatchQueue.main.async {
-                            completion(storageImage, nil, false, true)
-                        }
-                    }
-                } else {
-                    // Step 3: Download from network
-                    self.downloadImageFromNetwork(
-                        at: url,
-                        priority: priority,
-                        shouldSaveToStorage: shouldSaveToStorage,
-                        progress: progress,
-                        completion: completion,
-                        caller: caller
-                    )
-                }
-            }
-        }
-    }
-
-    /// Simplified API with default parameters
-    @objc public func requestImage(at url: URL, completion: ImageCompletionBlock? = nil) {
-        requestImage(
-            at: url,
-            priority: .low,
-            shouldSaveToStorage: configuration.shouldSaveToStorage,
-            progress: nil,
-            completion: completion,
-            caller: nil
-        )
-    }
-
-    /// Force reload (bypass cache/storage, fetch from network)
-    @objc public func forceReloadImage(
-        at url: URL,
-        priority: ResourcePriority = .low,
-        shouldSaveToStorage: Bool = true,
-        progress: ImageProgressBlock? = nil,
-        completion: ImageCompletionBlock? = nil,
-        caller: AnyObject? = nil
-    ) {
-        // Bypass cache and storage, go directly to network
-        downloadImageFromNetwork(
-            at: url,
-            priority: priority,
-            shouldSaveToStorage: shouldSaveToStorage,
-            progress: progress,
-            completion: completion,
-            caller: caller
-        )
-    }
-
-    // MARK: - Cancel Requests
-
-    public func cancelRequest(for url: URL, caller: AnyObject?) {
-        networkAgent.cancelDownload(for: url, caller: caller)
-    }
-
-    public func cancelAllRequests(for url: URL) {
-        networkAgent.cancelAllDownloads(for: url)
-    }
-
-    // MARK: - Cache Management
-
-    public func clearLowPriorityCache() {
-        cacheAgent.clearLowPriorityCache()
-    }
-
-    public func clearAllCache() {
-        cacheAgent.clearAllCache()
-    }
-
-    public func clearStorage(completion: ((Bool) -> Void)? = nil) {
-        storageAgent.clearAllStorage(completion: completion)
-    }
-
-    public func hardReset() {
-        cacheAgent.hardReset()
-        storageAgent.clearAllStorage(completion: nil)
-    }
-
-    // MARK: - Observer Management
-
-    public func addObserver(_ observer: ImageDownloaderObserver) {
-        observerManager.addObserver(observer)
-    }
-
-    public func removeObserver(_ observer: ImageDownloaderObserver) {
-        observerManager.removeObserver(observer)
-    }
-
-    // MARK: - Network Configuration Helpers
-
-    /// Set custom HTTP headers for all network requests
-    /// - Parameter headers: Dictionary of header key-value pairs
-    public func setCustomHeaders(_ headers: [String: String]) {
-        networkAgent.customHeaders = headers
-    }
-
-    /// Set authentication handler to modify requests before sending
-    /// - Parameter handler: Closure that modifies URLRequest (e.g., adds auth token)
-    public func setAuthenticationHandler(_ handler: @escaping (inout URLRequest) -> Void) {
-        networkAgent.authenticationHandler = handler
-    }
-
-    /// Update retry policy
-    /// - Parameter policy: The new retry policy to use
-    public func setRetryPolicy(_ policy: RetryPolicy) {
-        networkAgent.retryPolicy = policy
-    }
-
-    /// Update timeout interval
-    /// - Parameter timeout: Timeout in seconds
-    public func setTimeout(_ timeout: TimeInterval) {
-        networkAgent.timeout = timeout
-    }
-
-    /// Update cellular access setting
-    /// - Parameter allowed: Whether to allow downloads over cellular
-    public func setAllowsCellularAccess(_ allowed: Bool) {
-        networkAgent.allowsCellularAccess = allowed
-    }
-
-    // MARK: - Statistics
-
-    public func cacheSizeHigh() -> Int {
-        return cacheAgent.highPriorityCacheCount()
-    }
-
-    public func cacheSizeLow() -> Int {
-        return cacheAgent.lowPriorityCacheCount()
-    }
-
-    public func storageSizeBytes() -> UInt {
-        return storageAgent.currentStorageSize()
-    }
-
-    public func activeDownloadsCount() -> Int {
-        return networkAgent.activeDownloadCount
-    }
-
-    public func queuedDownloadsCount() -> Int {
-        return networkAgent.queuedTaskCount
-    }
-
-    // MARK: - Private Methods
-
+    
     /// Convert NSError to ImageDownloaderError
-    private func convertToImageDownloaderError(_ error: Error) -> ImageDownloaderError {
+    func convertToImageDownloaderError(_ error: Error) -> ImageDownloaderError {
         if let downloaderError = error as? ImageDownloaderError {
             return downloaderError
         }
@@ -509,7 +179,7 @@ public class ImageDownloaderManager: NSObject {
         }
     }
 
-    private func downloadImageFromNetwork(
+    func downloadImageFromNetwork(
         at url: URL,
         priority: ResourcePriority,
         shouldSaveToStorage: Bool,
@@ -517,6 +187,18 @@ public class ImageDownloaderManager: NSObject {
         completion: ImageCompletionBlock?,
         caller: AnyObject?
     ) {
+        // Ensure callbacks run on main thread
+        let mainThreadProgress: ImageProgressBlock? = progress.map { block in
+            return { progress in
+                DispatchQueue.main.async { block(progress) }
+            }
+        }
+        
+        let mainThreadCompletion: ImageCompletionBlock? = completion.map { block in
+            return { image, error, fromCache, fromStorage in
+                DispatchQueue.main.async { block(image, error, fromCache, fromStorage) }
+            }
+        }
         observerManager.notifyWillStartDownloading(url: url)
 
         networkAgent.downloadResource(
@@ -527,11 +209,7 @@ public class ImageDownloaderManager: NSObject {
 
                 // Forward progress
                 self.observerManager.notifyDownloadProgress(url: url, progress: downloadProgress)
-                if let progress = progress {
-                    DispatchQueue.main.async {
-                        progress(downloadProgress)
-                    }
-                }
+                mainThreadProgress?(downloadProgress)
             },
             completion: { [weak self] image, error in
                 guard let self = self else { return }
@@ -548,9 +226,7 @@ public class ImageDownloaderManager: NSObject {
 
                     self.observerManager.notifyImageDidLoad(url: url, fromCache: false, fromStorage: false)
 
-                    if let completion = completion {
-                        completion(image, nil, false, false)
-                    }
+                    mainThreadCompletion?(image, nil, false, false)
                 } else {
                     // Failure
                     let finalError = error ?? NSError(
@@ -568,17 +244,5 @@ public class ImageDownloaderManager: NSObject {
             },
             caller: caller
         )
-    }
-}
-
-// MARK: - CacheAgentDelegate
-
-extension ImageDownloaderManager: CacheAgentDelegate {
-    public func cacheDidEvictImage(for url: URL, priority: CachePriority) {
-        // When high priority cache evicts an image, we could save it to storage
-        // For now, we assume images are already saved during download if needed
-        if priority == .high {
-            // In production, you might want to implement saving evicted high-priority images
-        }
     }
 }
