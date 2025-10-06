@@ -84,16 +84,15 @@ let image = try await UIImage.load(from: imageURL, config: config)
 
 ## 📚 Documentation
 
-**Full documentation is available in [DOCUMENTATION.md](DOCUMENTATION.md)**
+Full documentation lives in the markdown folder.
 
 Quick links:
-- [Quick Start](DOCUMENTATION.md#quick-start)
-- [Injectable Configuration System](DOCUMENTATION.md#injectable-configuration-system)
-- [Network Features](DOCUMENTATION.md#network-features)
-- [Advanced Usage](DOCUMENTATION.md#advanced-usage)
-- [Migration Guide](DOCUMENTATION.md#migration-guide)
-- [API Reference](DOCUMENTATION.md#api-reference)
-- [Examples](DOCUMENTATION.md#examples)
+- [Quick Start](markdown/EXAMPLES.md#basic-usage)
+- [Injectable Configuration](markdown/PUBLIC_API.md#2-configuration)
+- [Network Features](markdown/EXAMPLES.md#custom-network-config)
+- [Advanced Usage](markdown/EXAMPLES.md#asyncawait-usage)
+- [API Reference](markdown/PUBLIC_API.md)
+- [Examples](markdown/EXAMPLES.md)
 
 ### Build DocC Documentation
 
@@ -194,7 +193,7 @@ NetworkMonitor.shared.onReachabilityChange = { isReachable in
 
 ## 🗺️ Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for detailed roadmap.
+See [markdown/ROADMAP.md](markdown/ROADMAP.md) for detailed roadmap.
 
 **v2.1.0** ✅ (Current)
 - Injectable configuration system
@@ -223,8 +222,10 @@ MIT License - See [LICENSE](LICENSE) file for details.
 
 ## 🔗 Links
 
-- **Documentation**: [DOCUMENTATION.md](DOCUMENTATION.md)
-- **Roadmap**: [ROADMAP.md](ROADMAP.md)
+- **Public API**: [markdown/PUBLIC_API.md](markdown/PUBLIC_API.md)
+- **Architecture**: [markdown/ARCHITECTURE.md](markdown/ARCHITECTURE.md)
+- **Examples**: [markdown/EXAMPLES.md](markdown/EXAMPLES.md)
+- **Roadmap**: [markdown/ROADMAP.md](markdown/ROADMAP.md)
 - **DocC Documentation**: [https://ductranprof99.github.io/Image-Downloader/](https://ductranprof99.github.io/Image-Downloader/)
 - **Issues**: [GitHub Issues](https://github.com/ductranprof99/Image-Downloader/issues)
 
