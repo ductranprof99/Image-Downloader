@@ -10,9 +10,6 @@ import Foundation
 import UIKit
 #endif
 
-#if canImport(AppKit)
-import AppKit
-#endif
 
 /// Result of an image download operation (Swift-only)
 public struct ImageResult {

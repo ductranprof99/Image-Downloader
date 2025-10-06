@@ -32,7 +32,6 @@ Or add via Xcode:
 3. Choose modules:
    - `ImageDownloader` - Core library (required)
    - `ImageDownloaderUI` - UIKit support
-   - `ImageDownloaderComponentKit` - ComponentKit support
 
 ---
 

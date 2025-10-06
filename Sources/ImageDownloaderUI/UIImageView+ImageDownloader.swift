@@ -9,9 +9,6 @@
 import UIKit
 #endif
 
-#if canImport(AppKit)
-import AppKit
-#endif
 import ImageDownloader
 import ObjectiveC
 

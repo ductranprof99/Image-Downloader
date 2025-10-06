@@ -10,10 +10,6 @@ import Foundation
 import UIKit
 #endif
 
-#if canImport(AppKit)
-import AppKit
-#endif
-
 public enum CachePriority {
     case low    // Can be cleared by memory pressure, replaced when out of slots
     case high   // Only cleared by explicit clear/reset, saved to storage when evicted

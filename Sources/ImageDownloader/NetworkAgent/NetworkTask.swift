@@ -10,9 +10,6 @@ import Foundation
 import UIKit
 #endif
 
-#if canImport(AppKit)
-import AppKit
-#endif
 
 public enum NetworkTaskState {
     case new

@@ -10,10 +10,6 @@ import Foundation
 import UIKit
 #endif
 
-#if canImport(AppKit)
-import AppKit
-#endif
-
 public typealias ImageCompletionBlock = (UIImage?, Error?, Bool, Bool) -> Void
 public typealias ImageProgressBlock = (CGFloat) -> Void
 

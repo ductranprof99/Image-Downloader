@@ -96,13 +96,9 @@ ImageDownloaderController/
 │   │   └── include/
 │   │       └── ImageDownloader.h    # Umbrella header
 │   │
-│   ├── ImageDownloaderUI/          # UIKit/SwiftUI adapter
-│   │   ├── AsyncImageView.swift
-│   │   └── UIImageView+Extension.swift
-│   │
-│   └── ImageDownloaderComponentKit/ # ComponentKit adapter
-│       ├── NetworkImageView.swift
-│       └── ComponentImageDownloader.swift
+│   └── ImageDownloaderUI/          # UIKit/SwiftUI adapter
+│       ├── AsyncImageView.swift
+│       └── UIImageView+Extension.swift
 │
 └── Tests/
     └── ImageDownloaderTests/       # Unit tests
@@ -134,11 +130,6 @@ let package = Package(
     .library(
       name: "ImageDownloaderUI",
       targets: ["ImageDownloaderUI"]
-    ),
-    // ComponentKit adapter
-    .library(
-      name: "ImageDownloaderComponentKit",
-      targets: ["ImageDownloaderComponentKit"]
     )
   ],
   dependencies: [],
@@ -155,13 +146,6 @@ let package = Package(
       name: "ImageDownloaderUI",
       dependencies: ["ImageDownloader"],
       path: "Sources/ImageDownloaderUI"
-    ),
-
-    // ComponentKit adapter
-    .target(
-      name: "ImageDownloaderComponentKit",
-      dependencies: ["ImageDownloader"],
-      path: "Sources/ImageDownloaderComponentKit"
     ),
 
     // Tests
@@ -192,7 +176,7 @@ git init
 - Created `Sources/ImageDownloader/` directory
 - Created subdirectories: Manager, CacheAgent, NetworkAgent, StorageAgent, Observer, Model
 - Created `Sources/ImageDownloader/include/` for public headers
-- Created adapter directories: `Sources/ImageDownloaderUI/`, `Sources/ImageDownloaderComponentKit/`
+- Created adapter directories: `Sources/ImageDownloaderUI/`
 
 **Step 1.3: Copy Core Files**
 - Migrated all core CNI files to ImageDownloader structure
@@ -243,18 +227,6 @@ extension UIImageView {
 }
 ```
 
-**ImageDownloaderComponentKit:**
-```swift
-class NetworkImageView: CKComponent {
-    static func new(
-        url: String,
-        size: CKComponentSize,
-        options: NetworkImageOptions,
-        attributes: [CKComponentViewAttribute: Any]
-    ) -> Self
-}
-```
-
 **Step 2.4: Update Import Statements**
 
 **Before (Objective-C):**
@@ -268,7 +240,6 @@ class NetworkImageView: CKComponent {
 ```swift
 import ImageDownloader
 import ImageDownloaderUI
-import ImageDownloaderComponentKit
 ```
 
 ---
@@ -400,10 +371,6 @@ import ImageDownloaderUI
 - Test placeholder handling
 - Test extension methods
 
-**ImageDownloaderComponentKitTests:**
-- Test NetworkImageView integration
-- Test attribute updates
-- Test view reuse
 
 ---
 

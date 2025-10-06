@@ -29,13 +29,9 @@ ImageDownloaderController/
 │   │   ├── Model/                 # ResourceModel
 │   │   └── include/ImageDownloader.h  # Umbrella header
 │   │
-│   ├── ImageDownloaderUI/         # UIKit/SwiftUI adapter
-│   │   ├── AsyncImageView.swift   # UIImageView subclass
-│   │   └── UIImageView+Extension.swift  # Convenience extension
-│   │
-│   └── ImageDownloaderComponentKit/  # ComponentKit adapter
-│       ├── NetworkImageView.swift
-│       └── ComponentImageDownloader.swift
+│   └── ImageDownloaderUI/         # UIKit/SwiftUI adapter
+│       ├── AsyncImageView.swift   # UIImageView subclass
+│       └── UIImageView+Extension.swift  # Convenience extension
 │
 └── Tests/
     └── ImageDownloaderTests/      # Unit tests (to be created)
@@ -58,7 +54,6 @@ ImageDownloaderController/
 - Created `Package.swift` with proper dependencies:
   - `ImageDownloader` (core library)
   - `ImageDownloaderUI` (UIKit/SwiftUI adapter)
-  - `ImageDownloaderComponentKit` (ComponentKit adapter)
 
 ### 3. Core ImageDownloader Migration ✅
 - Migrated all source files to Swift
@@ -71,10 +66,6 @@ ImageDownloaderController/
 **ImageDownloaderUI:**
 - `AsyncImageView` - UIImageView subclass with built-in image loading
 - `UIImageView+Extension` - Extension for adding functionality to any UIImageView
-
-**ImageDownloaderComponentKit:**
-- Migrated `NetworkImageView` from legacy component-kit
-- Migrated `ComponentImageDownloader` bridge
 
 ### 5. Documentation ✅
 - `README.md` - Complete Swift API documentation with examples
@@ -95,7 +86,6 @@ ImageDownloaderController/
 1. **Update Import Statements**
    - Change `import CNI` → `import ImageDownloader`
    - Change `import CNIUIKit` → `import ImageDownloaderUI`
-   - Change `import CNIComponentKit` → `import ImageDownloaderComponentKit`
 
 2. **Update Class References**
    - Change `CNIManager` → `ImageDownloaderManager`
@@ -257,7 +247,6 @@ From `ROADMAP.md`:
 **Source Code:**
 - `Sources/ImageDownloader/` - Core library (Swift)
 - `Sources/ImageDownloaderUI/` - UIKit/SwiftUI adapter (Swift)
-- `Sources/ImageDownloaderComponentKit/` - ComponentKit adapter (Swift)
 
 **Tests:**
 - `Tests/ImageDownloaderTests/` - Unit tests (to be created)
@@ -280,7 +269,6 @@ From `ROADMAP.md`:
 **Benefits:**
 - Core library is framework-agnostic
 - UIKit users only import ImageDownloaderUI
-- ComponentKit users only import ImageDownloaderComponentKit
 - Easy to add SwiftUI adapter
 
 ### 3. Framework-Style Imports

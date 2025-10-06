@@ -4,8 +4,7 @@ import PackageDescription
 let package = Package(
   name: "ImageDownloader",
   platforms: [
-    .iOS(.v13),
-    .macOS(.v10_15)
+    .iOS(.v13)
   ],
   products: [
     .library(
@@ -15,10 +14,6 @@ let package = Package(
     .library(
       name: "ImageDownloaderUI",
       targets: ["ImageDownloaderUI"]
-    ),
-    .library(
-      name: "ImageDownloaderComponentKit",
-      targets: ["ImageDownloaderComponentKit", "ImageDownloaderComponentKitBridge"]
     )
   ],
   dependencies: [],
@@ -28,8 +23,7 @@ let package = Package(
       dependencies: [],
       path: "Sources/ImageDownloader",
       linkerSettings: [
-        .linkedFramework("UIKit", .when(platforms: [.iOS])),
-        .linkedFramework("AppKit", .when(platforms: [.macOS]))
+        .linkedFramework("UIKit", .when(platforms: [.iOS]))
       ]
     ),
 
@@ -39,35 +33,6 @@ let package = Package(
       path: "Sources/ImageDownloaderUI"
     ),
 
-    // Objective-C++ bridge for ComponentKit C++ interop
-    .target(
-      name: "ImageDownloaderComponentKitBridge",
-      dependencies: ["ImageDownloader"],
-      path: "Sources/ImageDownloaderComponentKit",
-      exclude: [
-        "ComponentImageDownloader.swift",
-        "NetworkImageView.swift"
-      ],
-      publicHeadersPath: "include",
-      cxxSettings: [
-        .headerSearchPath(".")
-      ]
-    ),
-
-    // Swift layer for ComponentKit
-    .target(
-      name: "ImageDownloaderComponentKit",
-      dependencies: [
-        "ImageDownloader",
-        "ImageDownloaderComponentKitBridge"
-      ],
-      path: "Sources/ImageDownloaderComponentKit",
-      exclude: [
-        "NetworkImageViewBridge.h",
-        "NetworkImageViewBridge.mm",
-        "include"
-      ]
-    ),
 
     .testTarget(
       name: "ImageDownloaderTests",

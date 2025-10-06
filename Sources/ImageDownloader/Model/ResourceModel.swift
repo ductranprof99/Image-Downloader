@@ -10,9 +10,6 @@ import Foundation
 import UIKit
 #endif
 
-#if canImport(AppKit)
-import AppKit
-#endif
 import CryptoKit
 
 public enum ResourceState {
@@ -22,7 +19,7 @@ public enum ResourceState {
     case failed
 }
 
-public enum ResourcePriority {
+@objc public enum ResourcePriority: Int {
     case low
     case high
 }

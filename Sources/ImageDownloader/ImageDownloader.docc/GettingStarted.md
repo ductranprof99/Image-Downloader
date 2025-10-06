@@ -18,7 +18,6 @@ Add ImageDownloader to your project via Xcode:
 4. Choose targets:
    - `ImageDownloader` - Core library (required)
    - `ImageDownloaderUI` - UIKit integration
-   - `ImageDownloaderComponentKit` - ComponentKit integration
 
 Or add to `Package.swift`:
 

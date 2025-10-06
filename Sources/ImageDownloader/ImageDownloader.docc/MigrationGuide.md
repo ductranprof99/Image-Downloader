@@ -95,7 +95,6 @@ Update your `Package.swift` or Xcode package reference:
 // Replace all imports
 import CNI              → import ImageDownloader
 import CNIUIKit         → import ImageDownloaderUI
-import CNIComponentKit  → import ImageDownloaderComponentKit
 ```
 
 ### Step 3: Update Class Names
