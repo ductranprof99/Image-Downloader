@@ -1,0 +1,32 @@
+name: Deploy DocC to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '14.0'
+
+      - name: Build DocC documentation
+        run: |
+          xcodebuild docbuild -scheme ImageDownloader -destination 'platform=iOS Simulator,name=iPhone 15' -derivedDataPath .docc-build
+          $(xcrun --find docc) process-archive \
+            transform-for-static-hosting .docc-build/Build/Products/Debug-iphoneos/ImageDownloader.doccarchive \
+            --output-path docs \
+            --hosting-base-path ImageDownloaderController
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          publish_branch: gh-pages
