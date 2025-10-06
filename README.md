@@ -21,7 +21,7 @@ A powerful, production-ready Swift image downloading library with advanced cachi
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/ductranprof99/ImageDownloaderController.git", from: "2.0.0")
+    .package(url: "https://github.com/ductranprof99/Image-Downloader.git", from: "2.0.0")
 ]
 ```
 
@@ -138,8 +138,8 @@ MIT License - See [LICENSE](LICENSE) file for details.
 
 ## 🔗 Links
 
-- **Documentation:** Build with Xcode (Product → Build Documentation)
-- **Issues:** [GitHub Issues](https://github.com/ductranprof99/ImageDownloaderController/issues)
+- **Documentation (Pages):** https://ductranprof99.github.io/Image-Downloader/
+- **Issues:** [GitHub Issues](https://github.com/ductranprof99/Image-Downloader/issues)
 - **Migration:** [Migration Guide](Sources/ImageDownloader/ImageDownloader.docc/MigrationGuide.md)
 
 ---
