@@ -6,3 +6,13 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+
+# DocC and build cache
+.docc-build/
+Docs/index/data.mdb
+Docs/index/
+Docs/data/
+Docs/documentation/
+Docs/css/
+Docs/js/
+Docs/img/

@@ -4,11 +4,14 @@ on:
   push:
     branches: [main]
 
-jobs:
+  deploy:
   build-and-deploy:
     runs-on: macos-latest
     steps:
       - name: Checkout repository
+      - name: Resolve dependencies
+        run: swift package resolve
+
         uses: actions/checkout@v4
 
       - name: Set up Xcode
@@ -16,6 +19,14 @@ jobs:
         with:
           xcode-version: '14.0'
 
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs
+          git diff --cached --quiet || git commit -m "Update DocC documentation"
+          git push
       - name: Build DocC documentation
         run: |
           xcodebuild docbuild -scheme ImageDownloader -destination 'platform=iOS Simulator,name=iPhone 15' -derivedDataPath .docc-build
