@@ -206,7 +206,7 @@ extension FeedViewController: UITableViewDelegate {
         let clearAction = UIContextualAction(style: .destructive, title: "Clear Cache") { [weak self] _, _, completion in
             let item = self?.imageItems[indexPath.row]
             if let url = item?.url {
-                ImageDownloaderManager.shared.clearCache(for: url)
+//                ImageDownloaderManager.shared.clearCache(for: url)
                 tableView.reloadRows(at: [indexPath], with: .automatic)
             }
             completion(true)

@@ -80,6 +80,15 @@ extension ImageItem {
 
         return items
     }
+    
+    static func generateSingleItem() -> ImageItem {
+        .init(
+            url: URL(string: "https://picsum.photos/id/100/400")!,
+            title: "Image 1",
+            subtitle: "400×400 - Avatar",
+            imageType: .avatar
+        )
+    }
 }
 
 // MARK: - ImageType Extension
