@@ -16,7 +16,10 @@ let package = Package(
       targets: ["ImageDownloaderUI"]
     )
   ],
-  dependencies: [],
+  dependencies: [
+    // Dev plugin to enable `swift package generate-documentation`
+    .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.3")
+  ],
   targets: [
     .target(
       name: "ImageDownloader",
