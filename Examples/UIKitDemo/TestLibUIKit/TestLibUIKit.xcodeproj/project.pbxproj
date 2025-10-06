@@ -7,8 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		306B5BC02E93BDAE00E2514E /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 306B5BBF2E93BDAE00E2514E /* ImageDownloader */; };
-		306B5BC22E93BDAE00E2514E /* ImageDownloaderUI in Frameworks */ = {isa = PBXBuildFile; productRef = 306B5BC12E93BDAE00E2514E /* ImageDownloaderUI */; };
+		306B5BE52E93CAF000E2514E /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 306B5BE42E93CAF000E2514E /* ImageDownloader */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,8 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				306B5BC02E93BDAE00E2514E /* ImageDownloader in Frameworks */,
-				306B5BC22E93BDAE00E2514E /* ImageDownloaderUI in Frameworks */,
+				306B5BE52E93CAF000E2514E /* ImageDownloader in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,8 +83,7 @@
 			);
 			name = TestLibUIKit;
 			packageProductDependencies = (
-				306B5BBF2E93BDAE00E2514E /* ImageDownloader */,
-				306B5BC12E93BDAE00E2514E /* ImageDownloaderUI */,
+				306B5BE42E93CAF000E2514E /* ImageDownloader */,
 			);
 			productName = TestLibUIKit;
 			productReference = 306B5BA62E93BD9800E2514E /* TestLibUIKit.app */;
@@ -117,7 +114,7 @@
 			mainGroup = 306B5B9D2E93BD9800E2514E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				306B5BBE2E93BDAE00E2514E /* XCLocalSwiftPackageReference "../../../../Image-Downloader" */,
+				306B5BE12E93CAC000E2514E /* XCLocalSwiftPackageReference "../../../../Image-Downloader" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 306B5BA72E93BD9800E2514E /* Products */;
@@ -347,20 +344,16 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		306B5BBE2E93BDAE00E2514E /* XCLocalSwiftPackageReference "../../../../Image-Downloader" */ = {
+		306B5BE12E93CAC000E2514E /* XCLocalSwiftPackageReference "../../../../Image-Downloader" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../../../Image-Downloader";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		306B5BBF2E93BDAE00E2514E /* ImageDownloader */ = {
+		306B5BE42E93CAF000E2514E /* ImageDownloader */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ImageDownloader;
-		};
-		306B5BC12E93BDAE00E2514E /* ImageDownloaderUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ImageDownloaderUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

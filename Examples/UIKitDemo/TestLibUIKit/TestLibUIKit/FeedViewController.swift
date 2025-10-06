@@ -7,7 +7,6 @@
 
 import UIKit
 import ImageDownloader
-import ImageDownloaderUI
 
 class FeedViewController: UIViewController {
 

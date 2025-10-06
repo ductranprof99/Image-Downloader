@@ -7,7 +7,6 @@
 
 import UIKit
 import ImageDownloader
-import ImageDownloaderUI
 
 class ImageCell: UITableViewCell {
     static let identifier = "ImageCell"

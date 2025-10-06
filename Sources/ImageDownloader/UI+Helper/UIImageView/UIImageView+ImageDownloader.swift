@@ -9,7 +9,6 @@
 import UIKit
 #endif
 
-import ImageDownloader
 import ObjectiveC
 
 /// Extension on UIImageView for convenient image loading

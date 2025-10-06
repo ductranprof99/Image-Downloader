@@ -10,10 +10,6 @@ let package = Package(
     .library(
       name: "ImageDownloader",
       targets: ["ImageDownloader"]
-    ),
-    .library(
-      name: "ImageDownloaderUI",
-      targets: ["ImageDownloaderUI"]
     )
   ],
   dependencies: [
@@ -29,13 +25,6 @@ let package = Package(
         .linkedFramework("UIKit", .when(platforms: [.iOS]))
       ]
     ),
-
-    .target(
-      name: "ImageDownloaderUI",
-      dependencies: ["ImageDownloader"],
-      path: "Sources/ImageDownloaderUI"
-    ),
-
 
     .testTarget(
       name: "ImageDownloaderTests",

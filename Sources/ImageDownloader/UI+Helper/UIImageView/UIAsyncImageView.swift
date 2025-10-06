@@ -1,12 +1,11 @@
 //
-//  AsyncImageView.swift
+//  UIAsyncImageView.swift
 //  ImageDownloaderUI - UIKit adapter for ImageDownloader
 //
 //  UIImageView subclass with built-in image loading
 //
 
 import UIKit
-import ImageDownloader
 
 /// UIImageView subclass with built-in image loading support
 ///
@@ -25,7 +24,7 @@ import ImageDownloader
 /// imageView.priority = .high
 /// imageView.loadImage(from: URL(string: "https://example.com/image.jpg")!)
 /// ```
-open class AsyncImageView: UIImageView {
+open class UIAsyncImageView: UIImageView {
 
     // MARK: - Configuration Properties
 
