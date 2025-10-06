@@ -1,122 +1,126 @@
-# CNI Project Context
+# ImageDownloader Project Context
 
-## What is CNI?
+## What is ImageDownloader?
 
-**CNI (Custom Network Image)** is a production-ready iOS image loading library extracted from the `component-kit` project. It provides advanced caching, storage, and multi-framework support.
+**ImageDownloader** is a production-ready iOS image loading library written in Swift, extracted and modernized from the legacy CNI (Custom Network Image) Objective-C project. It provides advanced caching, storage, and multi-framework support with a clean Swift API.
 
 ## Project Status
 
-✅ **Phase 1 Complete - SPM Package Created**
+**Phase 2 Complete - Swift Conversion & Modernization**
 
-The CNI library has been successfully isolated as a Swift Package Manager (SPM) package with the following structure:
+The ImageDownloader library has been successfully converted to Swift with the following modern structure:
 
 ```
-CNI/
+ImageDownloaderController/
 ├── Package.swift                  # Multi-target SPM configuration
 ├── README.md                      # Full documentation
 ├── LICENSE                        # MIT License
-├── CNI_SPM_MIGRATION_PLAN.md      # Migration plan documentation
-├── CNI_IMPROVEMENT_PLAN.md        # Future improvements roadmap
+├── MIGRATION_HISTORY.md           # Migration history documentation
+├── ROADMAP.md                     # Future improvements roadmap
 ├── PROJECT_CONTEXT.md             # This file
 │
 ├── Sources/
-│   ├── CNI/                       # Core library (framework-agnostic)
-│   │   ├── Manager/               # CNIManager (coordinator)
+│   ├── ImageDownloader/           # Core library (framework-agnostic)
+│   │   ├── Manager/               # ImageDownloaderManager (coordinator)
 │   │   ├── CacheAgent/            # Two-tier memory cache
 │   │   ├── NetworkAgent/          # Download queue with concurrency control
 │   │   ├── StorageAgent/          # Disk persistence
 │   │   ├── Observer/              # Event notification system
-│   │   ├── Model/                 # CNIResourceModel
-│   │   └── include/CNI.h          # Umbrella header
+│   │   ├── Model/                 # ResourceModel
+│   │   └── include/ImageDownloader.h  # Umbrella header
 │   │
-│   ├── CNIUIKit/                  # UIKit adapter
-│   │   ├── CNIImageView.h/.m      # UIImageView subclass with CNI
-│   │   └── UIImageView+CNI.h/.m   # Convenience category
+│   ├── ImageDownloaderUI/         # UIKit/SwiftUI adapter
+│   │   ├── AsyncImageView.swift   # UIImageView subclass
+│   │   └── UIImageView+Extension.swift  # Convenience extension
 │   │
-│   └── CNIComponentKit/           # ComponentKit adapter
-│       ├── CustomNetworkImageView.h/.mm
-│       └── ComponentImageDownloader.h/.mm
+│   └── ImageDownloaderComponentKit/  # ComponentKit adapter
+│       ├── NetworkImageView.swift
+│       └── ComponentImageDownloader.swift
 │
 └── Tests/
-    └── CNITests/                  # Unit tests (to be created)
+    └── ImageDownloaderTests/      # Unit tests (to be created)
 ```
 
 ## What We've Done
 
-### 1. SPM Package Structure ✅
-- Initialized Swift Package with `swift package init`
-- Created multi-target `Package.swift`:
-  - `CNI` (core library)
-  - `CNIUIKit` (UIKit adapter)
-  - `CNIComponentKit` (ComponentKit adapter)
+### 1. Swift Conversion ✅
+- Converted all Objective-C code to modern Swift
+- Used Swift best practices (value types, optionals, protocol-oriented design)
+- Modernized API with Swift naming conventions
+- Updated all class names:
+  - `CNIManager` → `ImageDownloaderManager`
+  - `CNIImageView` → `AsyncImageView`
+  - `CustomNetworkImageView` → `NetworkImageView`
+  - Removed all "Custom" and "CNI" references
 
-### 2. Core CNI Migration ✅
-- Copied all CNI source files from `component-kit/CKTest/Helper/NetworkImage/CNI/`
-- Updated all imports to framework-style (`#import <CNI/CNIManager.h>`)
-- Created umbrella header `CNI.h`
-- All core files use consistent import style
+### 2. SPM Package Structure ✅
+- Initialized Swift Package with multi-target configuration
+- Created `Package.swift` with proper dependencies:
+  - `ImageDownloader` (core library)
+  - `ImageDownloaderUI` (UIKit/SwiftUI adapter)
+  - `ImageDownloaderComponentKit` (ComponentKit adapter)
 
-### 3. Adapters Created ✅
+### 3. Core ImageDownloader Migration ✅
+- Migrated all source files to Swift
+- Updated all imports to framework-style (`import ImageDownloader`)
+- Created modern Swift API with closures and type safety
+- All core files use consistent Swift patterns
 
-**CNIUIKit:**
-- `CNIImageView` - UIImageView subclass with built-in CNI loading
-- `UIImageView+CNI` - Category for adding CNI to any UIImageView
+### 4. Adapters Created ✅
 
-**CNIComponentKit:**
-- Migrated `CustomNetworkImageView` from component-kit
+**ImageDownloaderUI:**
+- `AsyncImageView` - UIImageView subclass with built-in image loading
+- `UIImageView+Extension` - Extension for adding functionality to any UIImageView
+
+**ImageDownloaderComponentKit:**
+- Migrated `NetworkImageView` from legacy component-kit
 - Migrated `ComponentImageDownloader` bridge
 
-### 4. Documentation ✅
-- `README.md` - Complete API documentation with examples
+### 5. Documentation ✅
+- `README.md` - Complete Swift API documentation with examples
 - `LICENSE` - MIT License
-- `CNI_SPM_MIGRATION_PLAN.md` - Detailed migration plan
-- `CNI_IMPROVEMENT_PLAN.md` - Roadmap for v1.1+
+- `MIGRATION_HISTORY.md` - Detailed migration history
+- `ROADMAP.md` - Future improvements roadmap
 
-### 5. Git Repository ✅
+### 6. Git Repository ✅
 - Initialized git repo
-- Initial commit with all files
+- Commits tracking Swift conversion progress
 
 ## What's Next
 
 ### Immediate Next Steps
 
-**Phase 2: Integrate with component-kit Project**
+**Phase 3: Integration & Testing**
 
-1. **Add CNI as Local SPM Dependency (Manual in Xcode)**
-   - Open component-kit project in Xcode
-   - Add local package from `/Users/macbook/Documents/Personal Work/CNI`
-   - Select `CNI` and `CNIComponentKit` targets
+1. **Update Import Statements**
+   - Change `import CNI` → `import ImageDownloader`
+   - Change `import CNIUIKit` → `import ImageDownloaderUI`
+   - Change `import CNIComponentKit` → `import ImageDownloaderComponentKit`
 
-2. **Update Imports in component-kit**
-   - Change `#import "CustomNetworkImageView.h"` → `#import <CNIComponentKit/CustomNetworkImageView.h>`
-   - Change `#import "CNIManager.h"` → `#import <CNI/CNIManager.h>`
+2. **Update Class References**
+   - Change `CNIManager` → `ImageDownloaderManager`
+   - Change `CNIImageView` → `AsyncImageView`
+   - Change `CustomNetworkImageView` → `NetworkImageView`
 
-3. **Remove Old CNI Files from component-kit**
-   - Delete `CKTest/Helper/NetworkImage/CNI/` folder
-   - Delete old `CustomNetworkImageView.h/.mm`
-   - Delete old `ComponentImageDownloader.h/.mm`
-
-4. **Test Integration**
-   - Build component-kit project
+3. **Test Integration**
+   - Build project
    - Verify image loading works
    - Verify no crashes
 
-See: `/Users/macbook/Documents/Personal Work/component-kit/CNI_INTEGRATION_GUIDE.md`
-
 ### Future Phases
 
-**Phase 3: Demo Apps**
-- Create `Examples/CNI-UIKit-Demo/`
-- Create `Examples/CNI-ComponentKit-Demo/`
-- Create `Examples/CNI-ObjC-Demo/`
-- Showcase all CNI features
+**Phase 4: Demo Apps**
+- Create `Examples/ImageDownloader-SwiftUI-Demo/`
+- Create `Examples/ImageDownloader-UIKit-Demo/`
+- Create `Examples/ImageDownloader-ComponentKit-Demo/`
+- Showcase all ImageDownloader features
 
-**Phase 4: Improvements (v1.1.0+)**
+**Phase 5: Improvements (v2.1.0+)**
 
-See `CNI_IMPROVEMENT_PLAN.md` for full details:
+See `ROADMAP.md` for full details:
 
 1. **Task 1: Protocol-Based Multi-Framework Adapter**
-   - Design `CNIImageViewProtocol`
+   - Design `ImageViewProtocol`
    - Create adapters for UIKit, SwiftUI, ComponentKit
    - Decouple core from framework-specific code
 
@@ -140,36 +144,36 @@ See `CNI_IMPROVEMENT_PLAN.md` for full details:
 
 ### Core Components
 
-**CNIManager** (Coordinator)
-- Singleton managing all CNI operations
+**ImageDownloaderManager** (Coordinator)
+- Singleton managing all operations
 - Coordinates between CacheAgent, StorageAgent, NetworkAgent
 - Manages observer notifications
 - Main public API
 
-**CNICacheAgent** (Two-Tier Memory Cache)
+**CacheAgent** (Two-Tier Memory Cache)
 - High priority cache (50 images default)
 - Low priority cache (100 images default)
 - Automatic eviction under memory pressure
 - Thread-safe operations
 
-**CNINetworkAgent** (Download Manager)
+**NetworkAgent** (Download Manager)
 - Concurrent download queue (4 concurrent max default)
 - Priority-based queuing
 - Progress tracking
 - Cancellation support
 
-**CNIStorageAgent** (Disk Persistence)
+**StorageAgent** (Disk Persistence)
 - Saves images to Documents directory
 - MD5-based file naming
 - Async read/write operations
 - Storage size tracking
 
-**CNIObserver** (Event System)
+**Observer** (Event System)
 - Observer pattern for global notifications
 - Events: didStartLoading, didFinishLoading, didFailLoading
 - Multiple observers supported
 
-**CNIResourceModel** (State Management)
+**ResourceModel** (State Management)
 - Tracks resource state (pending, loading, cached, failed)
 - MD5 identifier for URLs
 - Priority management
@@ -181,14 +185,14 @@ User Code
     ↓
 Adapter (UIKit/ComponentKit/SwiftUI)
     ↓
-CNI Core (Framework-agnostic)
+ImageDownloader Core (Framework-agnostic)
     ↓
-CNIManager → CacheAgent/NetworkAgent/StorageAgent
+ImageDownloaderManager → CacheAgent/NetworkAgent/StorageAgent
 ```
 
-## Current Limitations (To Be Fixed)
+## Current Strengths
 
-From `CNI_IMPROVEMENT_PLAN.md`:
+From `ROADMAP.md`:
 
 **Good Sides:**
 1. ✅ Clean layered architecture
@@ -201,31 +205,16 @@ From `CNI_IMPROVEMENT_PLAN.md`:
 8. ✅ MD5-based resource identification
 9. ✅ Memory pressure handling
 10. ✅ Request cancellation support
-
-**Bad Sides (To Fix):**
-1. ❌ Framework coupling (CustomNetworkImageView in core)
-2. ❌ No retry mechanism
-3. ❌ Request duplication (same URL multiple times)
-4. ❌ Inflexible configuration (global only)
-5. ❌ No custom headers/authentication
-6. ❌ No bandwidth throttling
-7. ❌ No progressive loading
-8. ❌ Limited image formats (no WebP/AVIF)
-9. ❌ No request interception
-10. ❌ No network reachability monitoring
-11. ❌ Singleton anti-pattern
-12. ❌ No SwiftUI support
-13. ❌ No error recovery strategies
-14. ❌ Limited statistics/analytics
-15. ❌ No unit tests
+11. ✅ Modern Swift API
+12. ✅ Type-safe closures
 
 ## Development Workflow
 
-### When Working on CNI Package
+### When Working on ImageDownloader Package
 
-1. **Open CNI in Xcode/VSCode:**
+1. **Open ImageDownloader in Xcode/VSCode:**
    ```bash
-   cd "/Users/macbook/Documents/Personal Work/CNI"
+   cd "/Users/ductd/Documents/ImageDownloaderController"
    code .
    ```
 
@@ -241,18 +230,18 @@ From `CNI_IMPROVEMENT_PLAN.md`:
    git commit -m "Description of changes"
    ```
 
-### When Integrating Changes to component-kit
+### When Integrating Changes
 
-1. **component-kit will automatically pick up changes** (using local package)
-2. **Build component-kit project** to verify
+1. **Projects will automatically pick up changes** (using local package)
+2. **Build project** to verify
 3. **If issues, check:**
    - Import statements are correct
    - Package is properly linked in Xcode
-   - CNI package builds successfully
+   - ImageDownloader package builds successfully
 
 ## File Organization
 
-### CNI Package Files
+### ImageDownloader Package Files
 
 **Package Configuration:**
 - `Package.swift` - SPM manifest with multi-target configuration
@@ -261,53 +250,54 @@ From `CNI_IMPROVEMENT_PLAN.md`:
 **Documentation:**
 - `README.md` - Public API documentation
 - `LICENSE` - MIT License
-- `CNI_SPM_MIGRATION_PLAN.md` - How we migrated to SPM
-- `CNI_IMPROVEMENT_PLAN.md` - Future improvements
+- `MIGRATION_HISTORY.md` - How we migrated from Objective-C to Swift
+- `ROADMAP.md` - Future improvements
 - `PROJECT_CONTEXT.md` - This file (project overview)
 
 **Source Code:**
-- `Sources/CNI/` - Core library (10 files)
-- `Sources/CNIUIKit/` - UIKit adapter (4 files)
-- `Sources/CNIComponentKit/` - ComponentKit adapter (4 files)
+- `Sources/ImageDownloader/` - Core library (Swift)
+- `Sources/ImageDownloaderUI/` - UIKit/SwiftUI adapter (Swift)
+- `Sources/ImageDownloaderComponentKit/` - ComponentKit adapter (Swift)
 
 **Tests:**
-- `Tests/CNITests/` - Unit tests (to be created)
+- `Tests/ImageDownloaderTests/` - Unit tests (to be created)
 
 ## Key Design Decisions
 
-### 1. Swift Package Manager (SPM)
-**Why:** Standard package manager for Swift/iOS, enables multi-framework support, forces clean boundaries
+### 1. Swift-First Approach
+**Why:** Modern iOS development is Swift-based, better type safety, cleaner API
 
 **Benefits:**
-- Reusable across projects
-- Independent versioning
-- Clean dependency management
-- Forces good architecture
+- Type-safe closures instead of blocks
+- Optionals for safer nil handling
+- Protocol-oriented design
+- Value types where appropriate
+- Better performance with Swift optimizations
 
 ### 2. Multi-Target Structure
 **Why:** Separates core logic from framework-specific adapters
 
 **Benefits:**
 - Core library is framework-agnostic
-- UIKit users only import CNIUIKit
-- ComponentKit users only import CNIComponentKit
-- Easy to add SwiftUI adapter later
+- UIKit users only import ImageDownloaderUI
+- ComponentKit users only import ImageDownloaderComponentKit
+- Easy to add SwiftUI adapter
 
 ### 3. Framework-Style Imports
 **Why:** Required for SPM packages, clearer module boundaries
 
-**Before:**
+**Before (Objective-C):**
 ```objc
 #import "CNIManager.h"
 ```
 
-**After:**
-```objc
-#import <CNI/CNIManager.h>
+**After (Swift):**
+```swift
+import ImageDownloader
 ```
 
 ### 4. Adapter Pattern
-**Why:** Decouples core CNI from UI frameworks
+**Why:** Decouples core ImageDownloader from UI frameworks
 
 **Benefits:**
 - Same core works with UIKit, ComponentKit, SwiftUI
@@ -316,31 +306,31 @@ From `CNI_IMPROVEMENT_PLAN.md`:
 
 ## Important Files to Reference
 
-When working on CNI, frequently reference:
+When working on ImageDownloader, frequently reference:
 
 1. **README.md** - Public API and usage examples
-2. **CNI_IMPROVEMENT_PLAN.md** - What to build next
-3. **CNI_SPM_MIGRATION_PLAN.md** - How we got here
+2. **ROADMAP.md** - What to build next
+3. **MIGRATION_HISTORY.md** - How we got here
 4. **Package.swift** - Target configuration
 
 ## Common Tasks
 
 ### Add New Feature to Core
 
-1. Add files to `Sources/CNI/`
-2. Update `Sources/CNI/include/CNI.h` if adding new public header
+1. Add files to `Sources/ImageDownloader/`
+2. Update `Sources/ImageDownloader/include/ImageDownloader.h` if adding new public header
 3. Update `README.md` with usage examples
-4. Add tests to `Tests/CNITests/`
+4. Add tests to `Tests/ImageDownloaderTests/`
 
 ### Add New Adapter
 
-1. Create directory `Sources/CNI{FrameworkName}/`
+1. Create directory `Sources/ImageDownloader{FrameworkName}/`
 2. Add target to `Package.swift`:
    ```swift
    .target(
-     name: "CNI{FrameworkName}",
-     dependencies: ["CNI"],
-     path: "Sources/CNI{FrameworkName}"
+     name: "ImageDownloader{FrameworkName}",
+     dependencies: ["ImageDownloader"],
+     path: "Sources/ImageDownloader{FrameworkName}"
    )
    ```
 3. Add product to `Package.swift`
@@ -349,7 +339,7 @@ When working on CNI, frequently reference:
 ### Test Changes Locally
 
 ```bash
-cd "/Users/macbook/Documents/Personal Work/CNI"
+cd "/Users/ductd/Documents/ImageDownloaderController"
 
 # Build package
 swift build
@@ -363,25 +353,21 @@ swift package diagnose
 
 ## Resources
 
-**Original Project:**
-- Location: `/Users/macbook/Documents/Personal Work/component-kit`
-- Integration Guide: `component-kit/CNI_INTEGRATION_GUIDE.md`
-
-**CNI Package:**
-- Location: `/Users/macbook/Documents/Personal Work/CNI`
-- Git Status: Initialized with initial commit
+**Package Location:**
+- Location: `/Users/ductd/Documents/ImageDownloaderController`
+- Git Status: Initialized with conversion commits
 
 **Documentation:**
-- All .md files in CNI root directory
-- Inline code documentation in headers
+- All .md files in package root directory
+- Inline code documentation in Swift files
 
 ## Next Session Checklist
 
-When opening CNI in a new session:
+When opening ImageDownloader in a new session:
 
 1. ✅ Read `PROJECT_CONTEXT.md` (this file)
 2. ✅ Check `README.md` for current API
-3. ✅ Review `CNI_IMPROVEMENT_PLAN.md` for roadmap
+3. ✅ Review `ROADMAP.md` for roadmap
 4. ✅ Check git status: `git status`
 5. ✅ See what's next in roadmap
 
@@ -389,15 +375,14 @@ When opening CNI in a new session:
 
 If you (or another AI assistant) need to understand:
 
-- **What is CNI?** → Read this file and README.md
-- **How to use CNI?** → Read README.md
-- **How did we get here?** → Read CNI_SPM_MIGRATION_PLAN.md
-- **What's next?** → Read CNI_IMPROVEMENT_PLAN.md
-- **How to integrate?** → Read component-kit/CNI_INTEGRATION_GUIDE.md
+- **What is ImageDownloader?** → Read this file and README.md
+- **How to use ImageDownloader?** → Read README.md
+- **How did we get here?** → Read MIGRATION_HISTORY.md
+- **What's next?** → Read ROADMAP.md
 
 ---
 
-**Document Version:** 1.0
+**Document Version:** 2.0
 **Created:** 2025-10-05
-**Last Updated:** 2025-10-05
-**Status:** Phase 1 Complete - SPM Package Created ✅
+**Last Updated:** 2025-10-06
+**Status:** Phase 2 Complete - Swift Conversion ✅

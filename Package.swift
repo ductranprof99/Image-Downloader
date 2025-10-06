@@ -2,64 +2,77 @@
 import PackageDescription
 
 let package = Package(
-  name: "CNI",
+  name: "ImageDownloader",
   platforms: [
     .iOS(.v13),
     .macOS(.v10_15)
   ],
   products: [
     .library(
-      name: "CNI",
-      targets: ["CNI"]
+      name: "ImageDownloader",
+      targets: ["ImageDownloader"]
     ),
     .library(
-      name: "CNIUIKit",
-      targets: ["CNIUIKit"]
+      name: "ImageDownloaderUI",
+      targets: ["ImageDownloaderUI"]
     ),
     .library(
-      name: "CNIComponentKit",
-      targets: ["CNIComponentKit"]
+      name: "ImageDownloaderComponentKit",
+      targets: ["ImageDownloaderComponentKit", "ImageDownloaderComponentKitBridge"]
     )
   ],
   dependencies: [],
   targets: [
     .target(
-      name: "CNI",
+      name: "ImageDownloader",
       dependencies: [],
-      path: "Sources/CNI",
-      exclude: ["include"],
-      publicHeadersPath: "include",
-      cSettings: [
-        .headerSearchPath("Manager"),
-        .headerSearchPath("CacheAgent"),
-        .headerSearchPath("NetworkAgent"),
-        .headerSearchPath("StorageAgent"),
-        .headerSearchPath("Observer"),
-        .headerSearchPath("Model"),
+      path: "Sources/ImageDownloader",
+      linkerSettings: [
+        .linkedFramework("UIKit", .when(platforms: [.iOS])),
+        .linkedFramework("AppKit", .when(platforms: [.macOS]))
       ]
     ),
 
     .target(
-      name: "CNIUIKit",
-      dependencies: ["CNI"],
-      path: "Sources/CNIUIKit"
+      name: "ImageDownloaderUI",
+      dependencies: ["ImageDownloader"],
+      path: "Sources/ImageDownloaderUI"
     ),
 
+    // Objective-C++ bridge for ComponentKit C++ interop
     .target(
-      name: "CNIComponentKit",
-      dependencies: ["CNI"],
-      path: "Sources/CNIComponentKit",
+      name: "ImageDownloaderComponentKitBridge",
+      dependencies: ["ImageDownloader"],
+      path: "Sources/ImageDownloaderComponentKit",
+      exclude: [
+        "ComponentImageDownloader.swift",
+        "NetworkImageView.swift"
+      ],
+      publicHeadersPath: "include",
       cxxSettings: [
-        .headerSearchPath("."),
+        .headerSearchPath(".")
+      ]
+    ),
+
+    // Swift layer for ComponentKit
+    .target(
+      name: "ImageDownloaderComponentKit",
+      dependencies: [
+        "ImageDownloader",
+        "ImageDownloaderComponentKitBridge"
+      ],
+      path: "Sources/ImageDownloaderComponentKit",
+      exclude: [
+        "NetworkImageViewBridge.h",
+        "NetworkImageViewBridge.mm",
+        "include"
       ]
     ),
 
     .testTarget(
-      name: "CNITests",
-      dependencies: ["CNI"],
-      path: "Tests/CNITests"
+      name: "ImageDownloaderTests",
+      dependencies: ["ImageDownloader"],
+      path: "Tests/ImageDownloaderTests"
     )
-  ],
-  cLanguageStandard: .c11,
-  cxxLanguageStandard: .cxx17
+  ]
 )

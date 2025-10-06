@@ -1,10 +1,10 @@
-# CNI - Custom Network Image Library
+# ImageDownloader - Swift Image Loading Library
 
 A powerful, production-ready iOS image loading library with advanced caching, storage, and multi-framework support.
 
 ## Features
 
-✨ **Core Features:**
+**Core Features:**
 - Two-tier memory cache (high/low priority)
 - Persistent disk storage
 - Concurrent download management with priority queuing
@@ -12,13 +12,13 @@ A powerful, production-ready iOS image loading library with advanced caching, st
 - Progress tracking
 - MD5-based resource identification
 
-📦 **Multi-Framework Support:**
-- **CNI** - Core library (framework-agnostic)
-- **CNIUIKit** - UIKit adapter with `CNIImageView` and category
-- **CNIComponentKit** - ComponentKit integration
-- **CNISwiftUI** - SwiftUI support (coming soon)
+**Multi-Framework Support:**
+- **ImageDownloader** - Core library (framework-agnostic)
+- **ImageDownloaderUI** - UIKit/SwiftUI adapter with `AsyncImageView` and convenience views
+- **ImageDownloaderComponentKit** - ComponentKit integration
+- **ImageDownloaderSwiftUI** - Native SwiftUI support (coming soon)
 
-🎯 **Production Ready:**
+**Production Ready:**
 - Memory-efficient two-tier caching
 - Automatic cache cleanup
 - Thread-safe operations
@@ -29,231 +29,290 @@ A powerful, production-ready iOS image loading library with advanced caching, st
 
 ### Swift Package Manager
 
-Add CNI to your project via Xcode:
+Add ImageDownloader to your project via Xcode:
 
 1. File → Add Packages
 2. Enter repository URL
 3. Select version/branch
 4. Choose targets you need:
-   - `CNI` - Core library (required)
-   - `CNIUIKit` - UIKit support
-   - `CNIComponentKit` - ComponentKit support
+   - `ImageDownloader` - Core library (required)
+   - `ImageDownloaderUI` - UIKit/SwiftUI support
+   - `ImageDownloaderComponentKit` - ComponentKit support
 
 Or add to `Package.swift`:
 
 ```swift
 dependencies: [
-  .package(url: "https://github.com/yourorg/CNI.git", from: "1.0.0")
+  .package(url: "https://github.com/yourorg/ImageDownloader.git", from: "2.0.0")
 ]
 ```
 
 ## Quick Start
 
-### UIKit - Using CNIImageView
+### SwiftUI - Using AsyncImageView
 
-```objc
-#import <CNIUIKit/CNIImageView.h>
+```swift
+import ImageDownloaderUI
 
-CNIImageView *imageView = [[CNIImageView alloc] initWithFrame:CGRectMake(0, 0, 100, 100)];
-imageView.placeholderImage = [UIImage imageNamed:@"placeholder"];
-imageView.priority = CNIResourcePriorityHigh;
-imageView.shouldSaveToStorage = YES;
+struct ContentView: View {
+    var body: some View {
+        AsyncImageView(
+            url: URL(string: "https://example.com/image.jpg")!,
+            placeholder: Image("placeholder"),
+            priority: .high,
+            shouldSaveToStorage: true
+        )
+        .aspectRatio(contentMode: .fill)
+        .frame(width: 100, height: 100)
+        .clipShape(Circle())
+    }
+}
+```
+
+### SwiftUI - With Progress Tracking
+
+```swift
+import ImageDownloaderUI
+
+struct ImageWithProgress: View {
+    @State private var progress: CGFloat = 0
+
+    var body: some View {
+        ZStack {
+            AsyncImageView(
+                url: URL(string: "https://example.com/image.jpg")!,
+                onProgress: { progress in
+                    self.progress = progress
+                },
+                onCompletion: { image, error in
+                    if let image = image {
+                        print("Image loaded: \(image)")
+                    }
+                }
+            )
+
+            if progress < 1.0 {
+                ProgressView(value: progress)
+                    .progressViewStyle(.circular)
+            }
+        }
+    }
+}
+```
+
+### UIKit - Using AsyncImageView
+
+```swift
+import ImageDownloaderUI
+
+let imageView = AsyncImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+imageView.placeholderImage = UIImage(named: "placeholder")
+imageView.priority = .high
+imageView.shouldSaveToStorage = true
 
 // With progress tracking
-imageView.onProgress = ^(CGFloat progress) {
-  NSLog(@"Loading: %.0f%%", progress * 100);
-};
+imageView.onProgress = { progress in
+    print("Loading: \(Int(progress * 100))%")
+}
 
 // With completion callback
-imageView.onCompletion = ^(UIImage *image, NSError *error, BOOL fromCache, BOOL fromStorage) {
-  if (image) {
-    NSLog(@"Loaded from %@", fromCache ? @"cache" : @"network");
-  }
-};
+imageView.onCompletion = { image, error, fromCache, fromStorage in
+    if let image = image {
+        print("Loaded from \(fromCache ? "cache" : "network")")
+    }
+}
 
-[imageView loadImageFromURL:[NSURL URLWithString:@"https://example.com/image.jpg"]];
+imageView.loadImage(from: URL(string: "https://example.com/image.jpg")!)
 ```
 
-### UIKit - Using UIImageView Category
+### UIKit - Using UIImageView Extension
 
-```objc
-#import <CNIUIKit/UIImageView+CNI.h>
+```swift
+import ImageDownloaderUI
 
-UIImageView *imageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 100, 100)];
+let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
 
 // Simple usage
-[imageView cni_setImageWithURL:[NSURL URLWithString:@"https://example.com/image.jpg"]];
+imageView.setImage(with: URL(string: "https://example.com/image.jpg")!)
 
 // With placeholder
-[imageView cni_setImageWithURL:[NSURL URLWithString:@"https://example.com/image.jpg"]
-                   placeholder:[UIImage imageNamed:@"placeholder"]];
+imageView.setImage(
+    with: URL(string: "https://example.com/image.jpg")!,
+    placeholder: UIImage(named: "placeholder")
+)
 
 // With priority and progress
-[imageView cni_setImageWithURL:[NSURL URLWithString:@"https://example.com/image.jpg"]
-                   placeholder:[UIImage imageNamed:@"placeholder"]
-                      priority:CNIResourcePriorityHigh
-                    onProgress:^(CGFloat progress) {
-                      NSLog(@"Progress: %.0f%%", progress * 100);
-                    }];
+imageView.setImage(
+    with: URL(string: "https://example.com/image.jpg")!,
+    placeholder: UIImage(named: "placeholder"),
+    priority: .high,
+    onProgress: { progress in
+        print("Progress: \(Int(progress * 100))%")
+    }
+)
 ```
 
-### ComponentKit - Using CustomNetworkImageView
+### ComponentKit - Using NetworkImageView
 
-```objc
-#import <CNIComponentKit/CustomNetworkImageView.h>
+```swift
+import ImageDownloaderComponentKit
 
-CKComponent *imageComponent = [CustomNetworkImageView
-  newWithURL:@"https://example.com/image.jpg"
-        size:{.width = CKRelativeDimension::Percent(1), .height = CKRelativeDimension::Points(200)}
-     options:{
-       .placeholder = [UIImage imageNamed:@"placeholder"],
-       .maskType = CustomImageMaskTypeCircle,
-       .cachePriority = CNIResourcePriorityHigh,
-       .shouldSaveToStorage = YES,
-       .progressOverlay = YES,
-       .onProgress = ^(CGFloat progress) {
-         NSLog(@"Loading: %.0f%%", progress * 100);
-       },
-       .onCompletion = ^(UIImage *image, NSError *error, BOOL fromCache) {
-         NSLog(@"Image loaded");
-       }
-     }
-  attributes:{}
-];
+let imageComponent = NetworkImageView.new(
+    url: "https://example.com/image.jpg",
+    size: CKComponentSize(
+        width: .percent(1),
+        height: .points(200)
+    ),
+    options: NetworkImageOptions(
+        placeholder: UIImage(named: "placeholder"),
+        maskType: .circle,
+        cachePriority: .high,
+        shouldSaveToStorage: true,
+        progressOverlay: true,
+        onProgress: { progress in
+            print("Loading: \(Int(progress * 100))%")
+        },
+        onCompletion: { image, error, fromCache in
+            print("Image loaded")
+        }
+    ),
+    attributes: [:]
+)
 ```
 
-### Core API - Direct CNIManager Usage
+### Core API - Direct ImageDownloaderManager Usage
 
-```objc
-#import <CNI/CNI.h>
+```swift
+import ImageDownloader
 
-[[CNIManager sharedManager] requestImageAtURL:[NSURL URLWithString:@"https://example.com/image.jpg"]
-                                     priority:CNIResourcePriorityHigh
-                          shouldSaveToStorage:YES
-                                     progress:^(CGFloat progress) {
-                                       NSLog(@"Progress: %.0f%%", progress * 100);
-                                     }
-                                   completion:^(UIImage *image, NSError *error, BOOL fromCache, BOOL fromStorage) {
-                                     if (image) {
-                                       NSLog(@"Got image from %@", fromCache ? @"cache" : (fromStorage ? @"storage" : @"network"));
-                                     }
-                                   }
-                                       caller:self];
+ImageDownloaderManager.shared.requestImage(
+    at: URL(string: "https://example.com/image.jpg")!,
+    priority: .high,
+    shouldSaveToStorage: true,
+    progress: { progress in
+        print("Progress: \(Int(progress * 100))%")
+    },
+    completion: { image, error, fromCache, fromStorage in
+        if let image = image {
+            let source = fromCache ? "cache" : (fromStorage ? "storage" : "network")
+            print("Got image from \(source)")
+        }
+    },
+    caller: self
+)
 ```
 
 ## Configuration
 
 ### Global Configuration
 
-```objc
-[[CNIManager sharedManager] configureWithMaxConcurrentDownloads:6
-                                              highCachePriority:100
-                                               lowCachePriority:200
-                                                    storagePath:nil]; // nil = default Documents directory
+```swift
+ImageDownloaderManager.shared.configure(
+    maxConcurrentDownloads: 6,
+    highCachePriority: 100,
+    lowCachePriority: 200,
+    storagePath: nil  // nil = default Documents directory
+)
 ```
 
 ### Cache Management
 
-```objc
+```swift
 // Clear low priority cache only
-[[CNIManager sharedManager] clearLowPriorityCache];
+ImageDownloaderManager.shared.clearLowPriorityCache()
 
 // Clear all memory cache
-[[CNIManager sharedManager] clearAllCache];
+ImageDownloaderManager.shared.clearAllCache()
 
 // Clear disk storage
-[[CNIManager sharedManager] clearStorage:^(BOOL success) {
-  NSLog(@"Storage cleared: %@", success ? @"YES" : @"NO");
-}];
+ImageDownloaderManager.shared.clearStorage { success in
+    print("Storage cleared: \(success)")
+}
 
 // Hard reset (clear everything)
-[[CNIManager sharedManager] hardReset];
+ImageDownloaderManager.shared.hardReset()
 ```
 
 ### Statistics
 
-```objc
-NSUInteger highCacheCount = [[CNIManager sharedManager] cacheSizeHigh];
-NSUInteger lowCacheCount = [[CNIManager sharedManager] cacheSizeLow];
-NSUInteger storageBytes = [[CNIManager sharedManager] storageSizeBytes];
-NSUInteger activeDownloads = [[CNIManager sharedManager] activeDownloadsCount];
-NSUInteger queuedDownloads = [[CNIManager sharedManager] queuedDownloadsCount];
+```swift
+let highCacheCount = ImageDownloaderManager.shared.cacheSizeHigh()
+let lowCacheCount = ImageDownloaderManager.shared.cacheSizeLow()
+let storageBytes = ImageDownloaderManager.shared.storageSizeBytes()
+let activeDownloads = ImageDownloaderManager.shared.activeDownloadsCount()
+let queuedDownloads = ImageDownloaderManager.shared.queuedDownloadsCount()
 
-NSLog(@"Cache: %lu high, %lu low | Storage: %lu bytes | Downloads: %lu active, %lu queued",
-      highCacheCount, lowCacheCount, storageBytes, activeDownloads, queuedDownloads);
+print("Cache: \(highCacheCount) high, \(lowCacheCount) low | Storage: \(storageBytes) bytes | Downloads: \(activeDownloads) active, \(queuedDownloads) queued")
 ```
 
 ## Observer Pattern
 
 Observe global image loading events:
 
-```objc
-#import <CNI/CNIObserver.h>
+```swift
+import ImageDownloader
 
-@interface MyObserver : NSObject <CNIObserver>
-@end
+class MyObserver: ImageDownloaderObserver {
+    func imageDidStartLoading(_ url: URL) {
+        print("Started loading: \(url)")
+    }
 
-@implementation MyObserver
+    func imageDidFinishLoading(
+        _ url: URL,
+        image: UIImage,
+        fromCache: Bool,
+        fromStorage: Bool
+    ) {
+        print("Finished loading: \(url) (from \(fromCache ? "cache" : "network"))")
+    }
 
-- (void)imageDidStartLoading:(NSURL *)URL {
-  NSLog(@"Started loading: %@", URL);
+    func imageDidFailLoading(_ url: URL, error: Error) {
+        print("Failed loading: \(url) - \(error.localizedDescription)")
+    }
 }
-
-- (void)imageDidFinishLoading:(NSURL *)URL
-                        image:(UIImage *)image
-                    fromCache:(BOOL)fromCache
-                  fromStorage:(BOOL)fromStorage {
-  NSLog(@"Finished loading: %@ (from %@)", URL, fromCache ? @"cache" : @"network");
-}
-
-- (void)imageDidFailLoading:(NSURL *)URL error:(NSError *)error {
-  NSLog(@"Failed loading: %@ - %@", URL, error.localizedDescription);
-}
-
-@end
 
 // Register observer
-MyObserver *observer = [[MyObserver alloc] init];
-[[CNIManager sharedManager] addObserver:observer];
+let observer = MyObserver()
+ImageDownloaderManager.shared.addObserver(observer)
 
 // Unregister when done
-[[CNIManager sharedManager] removeObserver:observer];
+ImageDownloaderManager.shared.removeObserver(observer)
 ```
 
 ## Architecture
 
-### CNI Core
+### ImageDownloader Core
 
 ```
-CNIManager (Coordinator)
-├── CNICacheAgent (Two-tier memory cache)
-├── CNIStorageAgent (Disk persistence)
-├── CNINetworkAgent (Concurrent downloads)
-└── CNIObserver (Event notifications)
+ImageDownloaderManager (Coordinator)
+├── CacheAgent (Two-tier memory cache)
+├── StorageAgent (Disk persistence)
+├── NetworkAgent (Concurrent downloads)
+└── Observer (Event notifications)
 ```
 
 ### Adapters
 
-- **CNIUIKit**: `CNIImageView` + `UIImageView+CNI` category
-- **CNIComponentKit**: `CustomNetworkImageView` + `ComponentImageDownloader`
-- **CNISwiftUI**: `CNIAsyncImage` (planned)
+- **ImageDownloaderUI**: `AsyncImageView` + `UIImageView` extension
+- **ImageDownloaderComponentKit**: `NetworkImageView` + `ComponentImageDownloader`
+- **ImageDownloaderSwiftUI**: Native SwiftUI views (planned)
 
 ## Roadmap
 
-### Version 1.1.0
+### Version 2.1.0
 - [ ] Protocol-based multi-framework adapter system
 - [ ] Configuration inheritance (global → request → runtime)
 - [ ] Request deduplication
 
-### Version 1.2.0
+### Version 2.2.0
 - [ ] Retry mechanism with exponential backoff
 - [ ] Custom headers/authentication support
 - [ ] Bandwidth throttling
 - [ ] Progressive image loading
 - [ ] WebP/AVIF format support
 
-### Version 1.3.0
-- [ ] SwiftUI adapter (CNIAsyncImage)
+### Version 2.3.0
+- [ ] Enhanced SwiftUI adapter
 - [ ] Network reachability monitoring
 - [ ] Request interceptor pattern
 
@@ -262,7 +321,7 @@ CNIManager (Coordinator)
 - iOS 13.0+
 - macOS 10.15+
 - Xcode 14.0+
-- Swift 5.9+ (for SPM)
+- Swift 5.9+
 
 ## License
 
@@ -274,10 +333,10 @@ Contributions are welcome! Please see CONTRIBUTING.md for guidelines.
 
 ## Support
 
-- 📖 Documentation: See `/docs` directory
-- 🐛 Issues: GitHub Issues
-- 💬 Discussions: GitHub Discussions
+- Documentation: See `/docs` directory
+- Issues: GitHub Issues
+- Discussions: GitHub Discussions
 
 ---
 
-**CNI** - Built for production, designed for performance.
+**ImageDownloader** - Built for production, designed for performance.
