@@ -23,17 +23,18 @@ class FullFeaturedViewModel: ObservableObject {
 
     func loadImages() {
         imageItems = ImageItem.generateSampleData(count: 30)
-        refreshStats()
+        Task {
+            await refreshStats()
+        }
     }
 
-    func refreshStats() {
-        Task {
-            let highCache = await manager.cacheSizeHigh()
-            let lowCache = await manager.cacheSizeLow()
+    func refreshStats() async {
+        let highCache = await manager.cacheSizeHigh()
+        let lowCache = await manager.cacheSizeLow()
+        let bytes = manager.storageSizeBytes()
+        let mb = Double(bytes) / 1_048_576
+        await MainActor.run {
             cacheCount = highCache + lowCache
-            
-            let bytes = manager.storageSizeBytes()
-            let mb = Double(bytes) / 1_048_576
             storageSizeString = String(format: "%.1f MB", mb)
             
             activeDownloads = manager.activeDownloadsCount()
@@ -42,25 +43,31 @@ class FullFeaturedViewModel: ObservableObject {
 
     func clearCache() {
         manager.clearAllCache()
-        refreshStats()
+        Task {
+            await refreshStats()
+        }
     }
 
     func clearStorage() {
         manager.clearStorage { [weak self] _ in
-            DispatchQueue.main.async {
-                self?.refreshStats()
+            Task {
+                await self?.refreshStats()
             }
         }
     }
 
     func clearAll() {
         manager.hardReset()
-        refreshStats()
+        Task {
+            await refreshStats()
+        }
     }
 
     private func startRefreshTimer() {
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.refreshStats()
+            Task {
+                await self?.refreshStats()
+            }
         }
     }
 

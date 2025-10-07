@@ -23,10 +23,8 @@ extension ImageDownloaderManager {
     public func requestImageAsync(
         at url: URL,
         priority: ResourcePriority = .low,
-        shouldSaveToStorage: Bool? = nil
+        shouldSaveToStorage saveToStorage: Bool = true
     ) async throws -> ImageResult {
-        let saveToStorage = shouldSaveToStorage ?? configuration.shouldSaveToStorage
-
         // Check cache (synchronous, thread-safe)
         if let cachedImage = await checkCache(for: url) {
             return ImageResult(

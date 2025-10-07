@@ -97,7 +97,9 @@ struct FullFeaturedDemoView: View {
 
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
-                        viewModel.refreshStats()
+                        Task {
+                            await viewModel.refreshStats()
+                        }
                     }) {
                         Image(systemName: "arrow.clockwise")
                     }
