@@ -1,3 +1,13 @@
+//
+//  StorageControlViewModel.swift
+//  SwiftUIExample
+//
+//  Created by ductd on 7/10/25.
+//
+
+import ImageDownloader
+import SwiftUI
+
 class StorageControlViewModel: ObservableObject {
     @Published var compressionInfo: String = "PNG"
     @Published var pathProviderInfo: String = "Flat"

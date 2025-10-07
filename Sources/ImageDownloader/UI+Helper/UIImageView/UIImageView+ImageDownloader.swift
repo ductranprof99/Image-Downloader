@@ -121,8 +121,7 @@ public extension UIImageView {
                         onCompletion?(image, error, fromCache, fromStorage)
                     }
                 }
-            },
-            caller: self
+            }
         )
     }
 

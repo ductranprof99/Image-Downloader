@@ -146,7 +146,6 @@ extension ImageDownloaderManager {
         shouldSaveToStorage: Bool,
         progress: ImageProgressBlock?,
         completion: ImageCompletionBlock?,
-        caller: AnyObject?
     ) {
         // Ensure callbacks run on main thread
         let mainThreadProgress: ImageProgressBlock? = progress.map { block in
@@ -202,8 +201,7 @@ extension ImageDownloaderManager {
                         completion(nil, finalError, false, false)
                     }
                 }
-            },
-            caller: caller
+            }
         )
     }
 }

@@ -26,15 +26,11 @@ extension ImageDownloaderManager {
     // MARK: - Main API
     
     // MARK: Async/Await API (Swift)
-    
-    /// Request an image resource using async/await (Swift-only)
-    @available(iOS 13.0, macOS 10.15, *)
     public func requestImage(
         at url: URL,
         priority: ResourcePriority = .low,
         shouldSaveToStorage: Bool? = nil,
-        progress: ImageProgressBlock? = nil,
-        caller: AnyObject? = nil
+        progress: ImageProgressBlock? = nil
     ) async throws -> ImageResult {
         let saveToStorage = shouldSaveToStorage ?? configuration.shouldSaveToStorage
         
@@ -68,8 +64,7 @@ extension ImageDownloaderManager {
                             ])
                         ))
                     }
-                },
-                caller: caller
+                }
             )
         }
     }
@@ -80,8 +75,7 @@ extension ImageDownloaderManager {
         at url: URL,
         priority: ResourcePriority = .low,
         shouldSaveToStorage: Bool? = nil,
-        progress: ImageProgressBlock? = nil,
-        caller: AnyObject? = nil
+        progress: ImageProgressBlock? = nil
     ) async throws -> ImageResult {
         let saveToStorage = shouldSaveToStorage ?? configuration.shouldSaveToStorage
         
@@ -115,8 +109,7 @@ extension ImageDownloaderManager {
                             ])
                         ))
                     }
-                },
-                caller: caller
+                }
             )
         }
     }
@@ -130,7 +123,6 @@ extension ImageDownloaderManager {
         shouldSaveToStorage: Bool = true,
         progress: ImageProgressBlock? = nil,
         completion: ImageCompletionBlock? = nil,
-        caller: AnyObject? = nil
     ) {
         // Wrap callbacks to ensure they run on main thread only
         let mainThreadCompletion: ImageCompletionBlock? = completion.map { block in
@@ -174,8 +166,7 @@ extension ImageDownloaderManager {
                         priority: priority,
                         shouldSaveToStorage: shouldSaveToStorage,
                         progress: progress,
-                        completion: completion,
-                        caller: caller
+                        completion: completion
                     )
                 }
             }
@@ -189,8 +180,7 @@ extension ImageDownloaderManager {
             priority: .low,
             shouldSaveToStorage: configuration.shouldSaveToStorage,
             progress: nil,
-            completion: completion,
-            caller: nil
+            completion: completion
         )
     }
     
@@ -201,7 +191,6 @@ extension ImageDownloaderManager {
         shouldSaveToStorage: Bool = true,
         progress: ImageProgressBlock? = nil,
         completion: ImageCompletionBlock? = nil,
-        caller: AnyObject? = nil
     ) {
         // Bypass cache and storage, go directly to network
         downloadImageFromNetwork(
@@ -209,19 +198,20 @@ extension ImageDownloaderManager {
             priority: priority,
             shouldSaveToStorage: shouldSaveToStorage,
             progress: progress,
-            completion: completion,
-            caller: caller
+            completion: completion
         )
     }
     
     // MARK: - Cancel Requests
     
     public func cancelRequest(for url: URL, caller: AnyObject?) {
-        networkAgent.cancelDownload(for: url, caller: caller)
+        // Note: caller parameter ignored in new actor-based implementation
+        // All callbacks for the same URL share the same Task
+        networkAgent.cancelDownload(for: url)
     }
-    
+
     public func cancelAllRequests(for url: URL) {
-        networkAgent.cancelAllDownloads(for: url)
+        networkAgent.cancelDownload(for: url)
     }
     
     // MARK: - Cache Management
@@ -252,39 +242,7 @@ extension ImageDownloaderManager {
     public func removeObserver(_ observer: ImageDownloaderObserver) {
         observerManager.removeObserver(observer)
     }
-    
-    // MARK: - Network Configuration Helpers
-    
-    /// Set custom HTTP headers for all network requests
-    /// - Parameter headers: Dictionary of header key-value pairs
-    public func setCustomHeaders(_ headers: [String: String]) {
-        networkAgent.customHeaders = headers
-    }
-    
-    /// Set authentication handler to modify requests before sending
-    /// - Parameter handler: Closure that modifies URLRequest (e.g., adds auth token)
-    public func setAuthenticationHandler(_ handler: @escaping (inout URLRequest) -> Void) {
-        networkAgent.authenticationHandler = handler
-    }
-    
-    /// Update retry policy
-    /// - Parameter policy: The new retry policy to use
-    public func setRetryPolicy(_ policy: RetryPolicy) {
-        networkAgent.retryPolicy = policy
-    }
-    
-    /// Update timeout interval
-    /// - Parameter timeout: Timeout in seconds
-    public func setTimeout(_ timeout: TimeInterval) {
-        networkAgent.timeout = timeout
-    }
-    
-    /// Update cellular access setting
-    /// - Parameter allowed: Whether to allow downloads over cellular
-    public func setAllowsCellularAccess(_ allowed: Bool) {
-        networkAgent.allowsCellularAccess = allowed
-    }
-    
+ 
     // MARK: - Statistics
     
     public func cacheSizeHigh() -> Int {
@@ -300,10 +258,19 @@ extension ImageDownloaderManager {
     }
     
     public func activeDownloadsCount() -> Int {
-        return networkAgent.activeDownloadCount
+        // Note: Returns 0 synchronously in new actor-based implementation
+        // Use async version for accurate count
+        return 0
     }
-    
+
+    @available(iOS 13.0, macOS 10.15, *)
+    public func activeDownloadsCountAsync() async -> Int {
+        return await networkAgent.activeDownloadCount
+    }
+
     public func queuedDownloadsCount() -> Int {
-        return networkAgent.queuedTaskCount
+        // Note: New actor-based implementation doesn't use a queue
+        // All downloads are managed via Swift Concurrency Task system
+        return 0
     }
 }

@@ -1,3 +1,12 @@
+//
+//  URLInputSheet.swift
+//  SwiftUIExample
+//
+//  Created by ductd on 7/10/25.
+//
+
+import SwiftUI
+
 struct URLInputSheet: View {
     @Binding var url: String
     var onSubmit: () -> Void

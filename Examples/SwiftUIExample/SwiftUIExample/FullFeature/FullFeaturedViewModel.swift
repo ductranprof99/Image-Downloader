@@ -1,3 +1,12 @@
+//
+//  FullFeaturedViewModel.swift
+//  SwiftUIExample
+//
+//  Created by ductd on 7/10/25.
+//
+import SwiftUI
+import ImageDownloader
+
 
 class FullFeaturedViewModel: ObservableObject {
     @Published var imageItems: [ImageItem] = []

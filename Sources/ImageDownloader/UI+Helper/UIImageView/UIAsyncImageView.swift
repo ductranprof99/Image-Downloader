@@ -181,8 +181,7 @@ open class UIAsyncImageView: UIImageView {
                         self.onCompletion?(image, error, fromCache, fromStorage)
                     }
                 }
-            },
-            caller: self
+            }
         )
     }
 

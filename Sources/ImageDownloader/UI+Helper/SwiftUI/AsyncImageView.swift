@@ -195,8 +195,7 @@ public class ImageLoader: ObservableObject {
                     self?.isLoading = false
                     self?.progress = 1.0
                 }
-            },
-            caller: self
+            }
         )
     }
 

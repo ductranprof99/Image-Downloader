@@ -1,3 +1,11 @@
+//
+//  LoadStats.swift
+//  SwiftUIExample
+//
+//  Created by ductd on 7/10/25.
+//
+
+import Foundation
 
 struct LoadStats {
     let loadTime: TimeInterval

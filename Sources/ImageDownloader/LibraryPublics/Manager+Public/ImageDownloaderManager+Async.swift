@@ -163,8 +163,7 @@ extension ImageDownloaderManager {
                                         NSError(domain: "ImageDownloader", code: -1, userInfo: nil)
                                     ))
                                 }
-                            },
-                            caller: nil
+                            }
                         )
                     }
 
