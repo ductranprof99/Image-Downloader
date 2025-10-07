@@ -49,6 +49,16 @@ public struct ImageResult {
             fromStorage: result.fromStorage
         )
     }
+    
+    @objc public var source: String {
+        if fromCache {
+            return "cache"
+        } else if fromStorage {
+            return "storage"
+        } else {
+            return "network"
+        }
+    }
 }
 
 /// Errors that can occur during image downloading

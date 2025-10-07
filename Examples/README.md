@@ -1,67 +1,99 @@
 # ImageDownloader - Example Projects
 
-Complete example projects demonstrating ImageDownloader usage.
+Complete example projects demonstrating ImageDownloader usage across different platforms and languages.
 
 ---
 
 ## Available Examples
 
-### 1. UIKitDemo
+### 1. UIKitDemo ⭐
 
-**UIKit app with progress tracking**
+**Full-featured UIKit app with progress tracking**
 
 Features:
-- Image loading with progress bar
-- Multiple image types (avatars, photos)
+- Image feed with collection view
+- Progress tracking and statistics
 - Cache management UI
 - Download statistics
 - Error handling
+- Swipe actions for cell management
 
 **Location:** `Examples/UIKitDemo/`
 
 **To Run:**
 ```bash
-cd Examples/UIKitDemo
-open UIKitDemo.xcodeproj
+cd Examples/UIKitDemo/TestLibUIKit
+open TestLibUIKit.xcodeproj
 ```
 
 ---
 
-### 2. SwiftUIDemo
+### 2. SwiftUIDemo 🆕⭐
 
-**SwiftUI app with feed, tabs, and debugging tools**
+**Comprehensive SwiftUI demos showcasing all features**
 
 Features:
-- Multi-tab interface (Feed, Downloads, Debug, Settings)
-- Feed with multiple images (1000+ test URLs)
-- Progress tracking in feed cells
-- Downloaded images folder browser
-- Debug view showing all download activity
-- Network statistics
-- Configuration switcher
+- **Storage Only Demo** - Load images from disk only (no network)
+- **Storage Control Demo** - File explorer, compression algorithms, folder structures
+- **Network Custom Demo** - Custom headers, retry policies, URL testing
+- **Full Featured Demo** - Complete working example with statistics
 
 **Location:** `Examples/SwiftUIDemo/`
 
+**Key Features:**
+- ✅ Multiple compression formats (PNG, JPEG, Adaptive)
+- ✅ Custom folder structures (Flat, Domain, Date hierarchical)
+- ✅ File browser with size/date info
+- ✅ Network configuration (concurrent downloads, timeout, retry)
+- ✅ Real-time statistics and monitoring
+- ✅ Easy to use, well-documented
+
 **To Run:**
-```bash
-cd Examples/SwiftUIDemo
-open SwiftUIDemo.xcodeproj
+```swift
+// The files are ready to integrate into any SwiftUI project
+// See Examples/SwiftUIDemo/README.md for details
+```
+
+---
+
+### 3. ObjectiveCDemo 🆕
+
+**Complete Objective-C integration examples**
+
+Features:
+- ✅ Full Objective-C compatibility demonstration
+- ✅ UIImageView category usage
+- ✅ Manager API examples
+- ✅ Custom configuration in Objective-C
+- ✅ JPEG/PNG compression providers
+- ✅ Domain/Date hierarchical storage
+- ✅ Cache management
+- ✅ Statistics and monitoring
+
+**Location:** `Examples/ObjectiveCDemo/`
+
+**To Run:**
+```objc
+// Include in any Objective-C project
+// See Examples/ObjectiveCDemo/README.md for integration guide
 ```
 
 ---
 
 ## Features Comparison
 
-| Feature | UIKitDemo | SwiftUIDemo |
-|---------|-----------|-------------|
-| Progress bars | ✅ | ✅ |
-| Feed/List view | ✅ | ✅ |
-| Tab bar navigation | ❌ | ✅ |
-| Folder browser | ❌ | ✅ |
-| Debug view | ❌ | ✅ |
-| 1000+ image URLs | ❌ | ✅ |
-| Cache management | ✅ | ✅ |
-| Config switching | ✅ | ✅ |
+| Feature | UIKitDemo | SwiftUIDemo | ObjectiveCDemo |
+|---------|-----------|-------------|----------------|
+| Progress bars | ✅ | ✅ | ✅ |
+| Feed/List view | ✅ | ✅ | ✅ |
+| Storage-only loading | ❌ | ✅ | ✅ |
+| File browser | ❌ | ✅ | ❌ |
+| Compression control | ❌ | ✅ | ✅ |
+| Folder structure config | ❌ | ✅ | ✅ |
+| Network customization | ❌ | ✅ | ✅ |
+| Cache management | ✅ | ✅ | ✅ |
+| Config switching | ✅ | ✅ | ✅ |
+| Objective-C compatible | ❌ | ❌ | ✅ |
 
 ---
 

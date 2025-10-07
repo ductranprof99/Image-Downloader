@@ -13,12 +13,15 @@ import Foundation
 @objc public class IDConfiguration: NSObject {
 
     // MARK: - Network Settings
-
+//    @objc public var enableBackgroundTasks: Bool = true
+//    @objc public var maxRetries: Int = 3
+//    @objc public var retryBaseDelay: TimeInterval = 1.0
     @objc public var maxConcurrentDownloads: Int
     @objc public var timeout: TimeInterval
 
     // MARK: - Cache Settings
-
+//    @objc public var highPriorityLimit: Int = 50
+//    @objc public var lowPriorityLimit: Int = 100
     @objc public var highCachePriority: Int
     @objc public var lowCachePriority: Int
 
@@ -190,3 +193,4 @@ import Foundation
         )
     }
 }
+

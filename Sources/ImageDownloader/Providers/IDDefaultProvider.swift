@@ -137,3 +137,17 @@ import UIKit
         return provider.name
     }
 }
+
+/// Objective-C compatible date hierarchical path provider
+@objc public class IDDateHierarchicalPathProvider: NSObject {
+    private let provider: DateHierarchicalPathProvider
+
+    @objc public override init() {
+        self.provider = DateHierarchicalPathProvider()
+        super.init()
+    }
+
+    @objc public func path(for url: URL, identifier: String) -> String {
+        return provider.path(for: url, identifier: identifier)
+    }
+}
