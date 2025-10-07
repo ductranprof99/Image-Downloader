@@ -21,6 +21,13 @@ let package = Package(
       name: "ImageDownloader",
       dependencies: [],
       path: "Sources/ImageDownloader",
+      exclude: [],
+      sources: nil,
+      publicHeadersPath: "include",
+      cSettings: [
+        .headerSearchPath("LibraryPublics"),
+        .headerSearchPath("UI+Helper")
+      ],
       linkerSettings: [
         .linkedFramework("UIKit", .when(platforms: [.iOS]))
       ]
