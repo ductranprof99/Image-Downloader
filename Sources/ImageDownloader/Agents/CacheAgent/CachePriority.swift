@@ -15,7 +15,7 @@ public enum CachePriority {
     case low    // Can be cleared by memory pressure, replaced when out of slots
     case high   // Only cleared by explicit clear/reset, saved to storage when evicted
 }
-
-public protocol CacheAgentDelegate: AnyObject {
-    func cacheDidEvictImage(for url: URL, priority: CachePriority)
-}
+//
+//public protocol CacheAgentDelegate: AnyObject {
+//    func cacheDidEvictImage(for url: URL, priority: CachePriority)
+//}

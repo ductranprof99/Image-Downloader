@@ -6,11 +6,8 @@
 //
 
 import Foundation
-#if canImport(UIKit)
 import UIKit
-#endif
 
-@available(iOS 13.0, macOS 10.15, *)
 extension ImageDownloaderManager {
 
     // MARK: - Pure Async/Await API (No DispatchQueue Mixing)
@@ -186,7 +183,7 @@ extension ImageDownloaderManager {
 
     private func checkCache(for url: URL) async -> UIImage? {
         return await Task {
-            cacheAgent.image(for: url)
+            await cacheAgent.image(for: url)
         }.value
     }
 
@@ -196,7 +193,9 @@ extension ImageDownloaderManager {
                 if let image = image, let self = self {
                     // Put in cache for fast access next time
                     let cachePriority: CachePriority = (priority == .high) ? .high : .low
-                    self.cacheAgent.setImage(image, for: url, priority: cachePriority)
+                    Task {
+                        await self.cacheAgent.setImage(image, for: url, priority: cachePriority)
+                    }
                     self.observerManager.notifyImageDidLoad(url: url, fromCache: false, fromStorage: true)
                 }
                 continuation.resume(returning: image)
@@ -215,7 +214,7 @@ extension ImageDownloaderManager {
 
         // Update cache
         let cachePriority: CachePriority = (priority == .high) ? .high : .low
-        cacheAgent.setImage(image, for: url, priority: cachePriority)
+        await cacheAgent.setImage(image, for: url, priority: cachePriority)
 
         // Save to storage if needed
         if shouldSaveToStorage {
@@ -229,7 +228,6 @@ extension ImageDownloaderManager {
 }
 
 /// Progress update for async image loading
-@available(iOS 13.0, macOS 10.15, *)
 public enum ImageLoadingProgress {
     case progress(CGFloat)
     case completed(ImageResult)

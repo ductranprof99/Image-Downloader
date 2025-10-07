@@ -27,15 +27,17 @@ class FullFeaturedViewModel: ObservableObject {
     }
 
     func refreshStats() {
-        let highCache = manager.cacheSizeHigh()
-        let lowCache = manager.cacheSizeLow()
-        cacheCount = highCache + lowCache
-
-        let bytes = manager.storageSizeBytes()
-        let mb = Double(bytes) / 1_048_576
-        storageSizeString = String(format: "%.1f MB", mb)
-
-        activeDownloads = manager.activeDownloadsCount()
+        Task {
+            let highCache = await manager.cacheSizeHigh()
+            let lowCache = await manager.cacheSizeLow()
+            cacheCount = highCache + lowCache
+            
+            let bytes = manager.storageSizeBytes()
+            let mb = Double(bytes) / 1_048_576
+            storageSizeString = String(format: "%.1f MB", mb)
+            
+            activeDownloads = manager.activeDownloadsCount()
+        }
     }
 
     func clearCache() {

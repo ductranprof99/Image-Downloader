@@ -71,10 +71,7 @@ public class ImageDownloaderManager: NSObject {
         storageAgent = StorageAgent(config: storageConfig)
         networkAgent = NetworkAgent(config: networkConfig)
         observerManager = ObserverManager()
-        
         super.init()
-        
-        self.cacheAgent.delegate = self
     }
     
     /// Internal initializer with injectable protocol-based configuration
@@ -91,20 +88,7 @@ public class ImageDownloaderManager: NSObject {
         networkAgent = NetworkAgent(config: networkConfig)
         observerManager = ObserverManager()
         super.init()
-        self.cacheAgent.delegate = self
-    }
-}
-
-
-// MARK: - CacheAgentDelegate
-
-extension ImageDownloaderManager: CacheAgentDelegate {
-    public func cacheDidEvictImage(for url: URL, priority: CachePriority) {
-        // When high priority cache evicts an image, we could save it to storage
-        // For now, we assume images are already saved during download if needed
-        if priority == .high {
-            // In production, you might want to implement saving evicted high-priority images
-        }
+//        self.cacheAgent.delegate = self
     }
 }
 
@@ -177,8 +161,9 @@ extension ImageDownloaderManager {
                 if let image = image {
                     // Success: update cache
                     let cachePriority: CachePriority = (priority == .high) ? .high : .low
-                    self.cacheAgent.setImage(image, for: url, priority: cachePriority)
-
+                    Task {
+                        await self.cacheAgent.setImage(image, for: url, priority: cachePriority)
+                    }
                     // Save to storage if needed
                     if shouldSaveToStorage {
                         self.storageAgent.saveImage(image, for: url, completion: nil)

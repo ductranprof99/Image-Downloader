@@ -7,7 +7,7 @@
 
 A powerful, production-ready Swift image downloading library with advanced caching, async/await support, and clean API.
 
-## ✨ What's New in v2.1
+## ✨ What's New in v0.3.0
 
 - ✅ **Configurable retry logging** - No more spam, debug when needed
 - ✅ **Placeholder & error images** - Separate images for loading/error states

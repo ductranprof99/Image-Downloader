@@ -12,8 +12,20 @@ class StorageOnlyViewModel: ObservableObject {
     @Published var storedImages: [URL] = []
     @Published var storedImageCount: Int = 0
     @Published var storageSizeString: String = "0 MB"
-
+    
     private let manager = ImageDownloaderManager.shared
+    private var loadingTasks: [URL: Task<Void, Never>] = [:]
+    
+    deinit {
+        // Cancel all pending tasks
+        loadingTasks.values.forEach { $0.cancel() }
+        loadingTasks.removeAll()
+        
+        // Clear cache when view model is deallocated
+        Task {
+            await manager.clearLowPriorityCache()
+        }
+    }
 
     func loadStorageInfo() {
         // Get storage size

@@ -15,7 +15,7 @@ extension ImageDownloaderManager {
         let (networkConfig, cacheConfig, storageConfig) = configuration.toInternalConfigs()
         // Update agents with new configuration
         cacheAgent = CacheAgent(config: cacheConfig)
-        cacheAgent.delegate = self
+        //        cacheAgent.delegate = self
         
         // Recreate StorageAgent with providers from configuration
         storageAgent = StorageAgent(config: storageConfig)
@@ -147,7 +147,9 @@ extension ImageDownloaderManager {
                 if let storageImage = storageImage {
                     // Put in cache for fast access next time
                     let cachePriority: CachePriority = (priority == .high) ? .high : .low
-                    self.cacheAgent.setImage(storageImage, for: url, priority: cachePriority)
+                    Task {
+                        await self.cacheAgent.setImage(storageImage, for: url, priority: cachePriority)
+                    }
                     
                     self.observerManager.notifyImageDidLoad(url: url, fromCache: false, fromStorage: true)
                     
@@ -209,32 +211,40 @@ extension ImageDownloaderManager {
         // All callbacks for the same URL share the same Task
         networkAgent.cancelDownload(for: url)
     }
-
+    
     public func cancelAllRequests(for url: URL) {
         networkAgent.cancelDownload(for: url)
     }
     
-    // MARK: - Cache Management
-    
-    public func clearLowPriorityCache() {
-        cacheAgent.clearLowPriorityCache()
+    // MARK: - Cache + Storage Management
+    @objc public func clearLowPriorityCache() {
+        Task {
+            await cacheAgent.clearLowPriorityCache()
+        }
     }
     
-    public func clearAllCache() {
-        cacheAgent.clearAllCache()
+    @objc public func clearAllCache() {
+        Task {
+            await cacheAgent.clearAllCache()
+        }
     }
     
     public func clearStorage(completion: ((Bool) -> Void)? = nil) {
         storageAgent.clearAllStorage(completion: completion)
     }
     
-    public func hardReset() {
-        cacheAgent.hardReset()
+    @objc public func hardReset() {
+        Task {
+            await cacheAgent.hardReset()
+        }
         storageAgent.clearAllStorage(completion: nil)
     }
     
-    // MARK: - Observer Management
     
+}
+
+// MARK: - Observer Management
+extension ImageDownloaderManager {
     public func addObserver(_ observer: ImageDownloaderObserver) {
         observerManager.addObserver(observer)
     }
@@ -242,15 +252,16 @@ extension ImageDownloaderManager {
     public func removeObserver(_ observer: ImageDownloaderObserver) {
         observerManager.removeObserver(observer)
     }
- 
-    // MARK: - Statistics
-    
-    public func cacheSizeHigh() -> Int {
-        return cacheAgent.highPriorityCacheCount()
+}
+
+// MARK: - Statistics Simple debug
+    extension ImageDownloaderManager {
+    public func cacheSizeHigh() async -> Int {
+        return await cacheAgent.highPriorityCacheCount()
     }
     
-    public func cacheSizeLow() -> Int {
-        return cacheAgent.lowPriorityCacheCount()
+    public func cacheSizeLow() async -> Int {
+        return await cacheAgent.lowPriorityCacheCount()
     }
     
     public func storageSizeBytes() -> UInt {
@@ -263,7 +274,6 @@ extension ImageDownloaderManager {
         return 0
     }
 
-    @available(iOS 13.0, macOS 10.15, *)
     public func activeDownloadsCountAsync() async -> Int {
         return await networkAgent.activeDownloadCount
     }
