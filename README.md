@@ -3,7 +3,7 @@
 [![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
 [![Platform](https://img.shields.io/badge/platform-iOS%2013%2B-lightgrey.svg)](https://developer.apple.com)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.1.0-green.svg)](https://github.com/ductranprof99/Image-Downloader)
+[![Version](https://img.shields.io/badge/version-0.3.0-green.svg)](https://github.com/ductranprof99/Image-Downloader)
 
 A powerful, production-ready Swift image downloading library with advanced caching, async/await support, and clean API.
 
