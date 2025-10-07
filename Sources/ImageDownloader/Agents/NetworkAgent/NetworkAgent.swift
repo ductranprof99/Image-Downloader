@@ -8,14 +8,38 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 /// NetworkAgent handles image downloads with automatic concurrency limiting and request deduplication
 /// All state is actor-isolated for thread safety without DispatchQueue
 /// Uses a single shared URLSession across all instances for resource efficiency
 internal actor NetworkAgent {
 
+    // MARK: - Shared Resources
+
+    /// Shared URLSession instance used by all NetworkAgent instances
+    /// This is more efficient than creating multiple sessions
+    private static let sharedSession: URLSession = {
+        let config = URLSessionConfiguration.default
+
+        // Enable background network access (URLSession handles this properly)
+        config.sessionSendsLaunchEvents = true
+        config.isDiscretionary = false  // Download even when battery is low
+
+        // Reasonable defaults
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 300  // 5 minutes total
+        config.httpMaximumConnectionsPerHost = 6
+        config.allowsCellularAccess = true
+
+        // Create with delegate for auth challenges
+        return URLSession(configuration: config, delegate: SessionDelegate.shared, delegateQueue: nil)
+    }()
+
     // MARK: - Configuration Properties
+
     var maxConcurrentDownloads: Int
     var timeout: TimeInterval
     var retryPolicy: RetryPolicy
@@ -24,7 +48,6 @@ internal actor NetworkAgent {
     var allowsCellularAccess: Bool
 
     // MARK: - Private State
-    private let session: URLSession
 
     /// Active downloads: URL -> DownloadOperation
     /// Provides automatic request deduplication - multiple requests for same URL share one download
@@ -42,21 +65,6 @@ internal actor NetworkAgent {
         self.customHeaders = config.customHeaders
         self.authenticationHandler = config.authenticationHandler
         self.allowsCellularAccess = config.allowsCellularAccess
-
-        // Create session configuration
-        let sessionConfig = URLSessionConfiguration.default
-        sessionConfig.httpMaximumConnectionsPerHost = config.maxConcurrentDownloads
-        sessionConfig.timeoutIntervalForRequest = config.timeout
-        sessionConfig.allowsCellularAccess = config.allowsCellularAccess
-
-        // Enable background network access (URLSession handles this properly)
-        sessionConfig.sessionSendsLaunchEvents = true
-        sessionConfig.isDiscretionary = false  // Download even when battery is low
-
-        // Create delegate for advanced features (auth challenges, etc.)
-
-        // Create session
-        self.session = URLSession(configuration: sessionConfig, delegate: SessionDelegate.shared, delegateQueue: nil)
     }
 
     // MARK: - Public API (Non-isolated for sync access)
@@ -181,7 +189,7 @@ internal actor NetworkAgent {
             activeDownloads.removeValue(forKey: urlKey)
 
             // Process next pending download
-            processNextPending()
+            await processNextPending()
 
             return image
 
@@ -190,14 +198,15 @@ internal actor NetworkAgent {
             activeDownloads.removeValue(forKey: urlKey)
 
             // Process next pending download
-            processNextPending()
+            await processNextPending()
 
             throw error
         }
     }
 
     /// Process next pending download if slot available
-    private func processNextPending() {
+    /// FIXED: Now properly async to avoid continuation leaks
+    private func processNextPending() async {
         // Check if we have capacity and pending downloads
         guard activeDownloads.count < maxConcurrentDownloads,
               !pendingQueue.isEmpty else {
@@ -207,18 +216,16 @@ internal actor NetworkAgent {
         // Dequeue next pending download
         let pending = pendingQueue.removeFirst()
 
-        // Start it
-        Task {
-            do {
-                let image = try await startDownload(
-                    url: pending.url,
-                    priority: pending.priority,
-                    progress: pending.progress
-                )
-                pending.continuation.resume(returning: image)
-            } catch {
-                pending.continuation.resume(throwing: error)
-            }
+        // FIXED: Use structured concurrency - ensure continuation is ALWAYS resumed
+        do {
+            let image = try await startDownload(
+                url: pending.url,
+                priority: pending.priority,
+                progress: pending.progress
+            )
+            pending.continuation.resume(returning: image)
+        } catch {
+            pending.continuation.resume(throwing: error)
         }
     }
 
@@ -247,7 +254,7 @@ internal actor NetworkAgent {
 
         do {
             // Execute download using SHARED URLSession with configured request
-            let (data, response) = try await session.data(for: request)
+            let (data, response) = try await Self.sharedSession.data(for: request)
 
             // Validate HTTP response
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -308,13 +315,22 @@ internal actor NetworkAgent {
             operation.task.cancel()
             activeDownloads.removeValue(forKey: urlKey)
 
-            // Process next pending
-            processNextPending()
+            // Process next pending (spawn task to avoid blocking)
+            Task {
+                await processNextPending()
+            }
             return
         }
 
-        // Remove from pending queue
-        pendingQueue.removeAll { $0.url.absoluteString == urlKey }
+        // Remove from pending queue and resume with cancellation error
+        pendingQueue.removeAll { pending in
+            if pending.url.absoluteString == urlKey {
+                // FIXED: Resume continuation with cancellation before removing
+                pending.continuation.resume(throwing: ImageDownloaderError.cancelled)
+                return true
+            }
+            return false
+        }
     }
 
     /// Convert NSError to ImageDownloaderError
@@ -358,7 +374,10 @@ internal actor NetworkAgent {
         }
         activeDownloads.removeAll()
 
-        // Clear pending queue
+        // FIXED: Resume all pending continuations before clearing
+        for pending in pendingQueue {
+            pending.continuation.resume(throwing: ImageDownloaderError.cancelled)
+        }
         pendingQueue.removeAll()
     }
 }
