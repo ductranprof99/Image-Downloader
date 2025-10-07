@@ -300,7 +300,7 @@ enum ResourcePriority: Int {
 }
 ```
 
-#### IDRetryPolicy
+#### IDRetryPolicy (Objective-C)
 ```swift
 @objc class IDRetryPolicy: NSObject {
     let maxRetries: Int
@@ -318,8 +318,34 @@ enum ResourcePriority: Int {
     @objc static func aggressivePolicy() -> IDRetryPolicy   // 5 retries, 0.5s base, 2x multiplier
     @objc static func conservativePolicy() -> IDRetryPolicy // 2 retries, 2s base, 3x multiplier
     @objc static func noRetry() -> IDRetryPolicy            // 0 retries
+
+    // Convert to internal Swift type
+    func toSwift() -> RetryPolicy
 }
 ```
+
+#### RetryPolicy (Swift, used by ConfigBuilder)
+```swift
+struct RetryPolicy {
+    let maxRetries: Int
+    let baseDelay: TimeInterval
+    let backoffMultiplier: Double
+    let maxDelay: TimeInterval
+
+    init(maxRetries: Int = 3,
+         baseDelay: TimeInterval = 1.0,
+         backoffMultiplier: Double = 2.0,
+         maxDelay: TimeInterval = 60.0)
+
+    // Static presets
+    static let `default`: RetryPolicy      // 3 retries, 1s base, 2x multiplier
+    static let aggressive: RetryPolicy     // 5 retries, 0.5s base, 1.5x multiplier
+    static let conservative: RetryPolicy   // 2 retries, 2s base, 3x multiplier
+    static let none: RetryPolicy           // 0 retries
+}
+```
+
+**Note:** ConfigBuilder uses `RetryPolicy` (Swift struct), while IDNetworkConfig uses `IDRetryPolicy` (ObjC class). They are automatically converted.
 
 ---
 
@@ -501,7 +527,7 @@ imageView.setImage(with: url, config: IDConfiguration.highPerformance)
 // Custom with builder
 let config = ConfigBuilder()
     .maxConcurrentDownloads(8)
-    .retryPolicy(.aggressivePolicy())
+    .retryPolicy(.aggressive)  // RetryPolicy presets
     .compressionProvider(JPEGCompressionProvider(quality: 0.8))
     .build()
 
