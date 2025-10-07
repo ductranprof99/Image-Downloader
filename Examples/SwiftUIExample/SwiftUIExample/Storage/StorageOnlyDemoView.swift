@@ -15,6 +15,18 @@ struct StorageOnlyDemoView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
+                // Storage Mode Picker
+                Picker("Storage Mode", selection: $viewModel.storageMode) {
+                    ForEach(StorageMode.allCases, id: \.self) { mode in
+                        Text(mode.description).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding()
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                
                 // Header info
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Storage-Only Demo")
@@ -59,7 +71,7 @@ struct StorageOnlyDemoView: View {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 16) {
                         ForEach(viewModel.storedImages, id: \.self) { url in
-                            StorageImageView(url: url)
+                            StorageImageView(url: url, mode: $viewModel.storageMode)
                         }
                     }
                     .padding()

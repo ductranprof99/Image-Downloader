@@ -8,11 +8,39 @@
 import SwiftUI
 import ImageDownloader
 
+enum StorageMode: Int, CaseIterable {
+    case noStorage = 0
+    case highPriorityLowStorage = 1
+    case lowPriorityWithStorage = 2
+    
+    var description: String {
+        switch self {
+        case .noStorage:
+            return "No Storage"
+        case .highPriorityLowStorage:
+            return "High + Storage"
+        case .lowPriorityWithStorage:
+            return "Low + Storage"
+        }
+    }
+    
+    var configuration: (priority: ResourcePriority, shouldSaveToStorage: Bool) {
+        switch self {
+        case .noStorage:
+            return (.low, false)
+        case .highPriorityLowStorage:
+            return (.high, true)
+        case .lowPriorityWithStorage:
+            return (.low, true)
+        }
+    }
+}
+
 struct StorageImageView: View {
     let url: URL
+    @Binding var mode: StorageMode
     @State private var image: UIImage?
     @State private var isLoading = true
-    @AppStorage("useHighPriority") private var useHighPriority = false
 
     var body: some View {
         VStack {
@@ -44,18 +72,6 @@ struct StorageImageView: View {
                         )
                 }
             }
-            
-            Toggle(isOn: $useHighPriority) {
-                Text(useHighPriority ? "High Priority" : "Low Priority")
-            }
-            .padding(.horizontal)
-            .onChange(of: useHighPriority) { 
-                Task {
-                    self.isLoading = true
-                    self.image = nil
-                    await loadImage()
-                }
-            }
         }
         .task {
             await loadImage()
@@ -64,20 +80,27 @@ struct StorageImageView: View {
 
     private func loadImage() async {
         do {
+            let config = mode.configuration
             let result = try await ImageDownloaderManager.shared.requestImageAsync(
                 at: url,
-                priority: useHighPriority ? .high : .low,
-                shouldSaveToStorage: !useHighPriority  // Save to storage only for low priority
+                priority: config.priority,
+                shouldSaveToStorage: config.shouldSaveToStorage
             )
             
             await MainActor.run {
-                if useHighPriority {
-                    // In high priority mode, only show from cache or storage
+                switch mode {
+                case .noStorage:
+                    // Only show if from cache
+                    if result.fromCache {
+                        self.image = result.image
+                    }
+                case .highPriorityLowStorage:
+                    // High priority: show if from cache or storage
                     if result.fromCache || result.fromStorage {
                         self.image = result.image
                     }
-                } else {
-                    // In low priority mode, show from any source
+                case .lowPriorityWithStorage:
+                    // Low priority with storage: show from any source
                     self.image = result.image
                 }
                 self.isLoading = false

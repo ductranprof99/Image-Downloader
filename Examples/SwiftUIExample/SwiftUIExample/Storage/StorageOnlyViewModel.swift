@@ -12,6 +12,7 @@ class StorageOnlyViewModel: ObservableObject {
     @Published var storedImages: [URL] = []
     @Published var storedImageCount: Int = 0
     @Published var storageSizeString: String = "0 MB"
+    @AppStorage("storageMode") var storageMode: StorageMode = .noStorage
     
     private let manager = ImageDownloaderManager.shared
     private var loadingTasks: [URL: Task<Void, Never>] = [:]
