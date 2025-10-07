@@ -8,7 +8,6 @@
 import SwiftUI
 import ImageDownloader
 
-@available(iOS 15.0, *)
 struct StorageOnlyDemoView: View {
 
     @StateObject private var viewModel = StorageOnlyViewModel()
@@ -114,42 +113,7 @@ struct StorageOnlyDemoView: View {
     }
 }
 
-@available(iOS 15.0, *)
-class StorageOnlyViewModel: ObservableObject {
-    @Published var storedImages: [URL] = []
-    @Published var storedImageCount: Int = 0
-    @Published var storageSizeString: String = "0 MB"
 
-    private let manager = ImageDownloaderManager.shared
-
-    func loadStorageInfo() {
-        // Get storage size
-        let bytes = manager.storageSizeBytes()
-        let mb = Double(bytes) / 1_048_576
-        storageSizeString = String(format: "%.2f MB", mb)
-
-        // For demo purposes, we'll use sample URLs
-        // In production, you'd track which URLs are actually stored
-        storedImages = ImageItem.generateSampleData(count: 20).map { $0.url }
-        storedImageCount = storedImages.count
-    }
-
-    func refreshStorageInfo() {
-        loadStorageInfo()
-    }
-
-    func clearStorage() {
-        manager.clearStorage { [weak self] success in
-            DispatchQueue.main.async {
-                if success {
-                    self?.storedImages = []
-                    self?.storedImageCount = 0
-                    self?.storageSizeString = "0 MB"
-                }
-            }
-        }
-    }
-}
 
 @available(iOS 15.0, *)
 struct StorageImageView: View {
@@ -189,15 +153,28 @@ struct StorageImageView: View {
     }
 
     private func loadFromStorageOnly() async {
-        // Load from storage only - no network
-        let storageAgent = ImageDownloaderManager.shared.storageAgent
+        // Load from storage only - use the public API
+        // Note: This will still try cache first, then storage
+        // For true storage-only, you'd need a custom implementation
+        do {
+            let result = try await ImageDownloaderManager.shared.requestImageAsync(
+                at: url,
+                priority: .low,
+                shouldSaveToStorage: false  // Don't save, just load
+            )
 
-        if let storedImage = await storageAgent.image(for: url) {
-            await MainActor.run {
-                self.image = storedImage
-                self.isLoading = false
+            // Only use if it came from cache/storage (not network)
+            if result.fromCache || result.fromStorage {
+                await MainActor.run {
+                    self.image = result.image
+                    self.isLoading = false
+                }
+            } else {
+                await MainActor.run {
+                    self.isLoading = false
+                }
             }
-        } else {
+        } catch {
             await MainActor.run {
                 self.isLoading = false
             }
@@ -206,10 +183,6 @@ struct StorageImageView: View {
 }
 
 // MARK: - Preview
-
-@available(iOS 15.0, *)
-struct StorageOnlyDemoView_Previews: PreviewProvider {
-    static var previews: some View {
-        StorageOnlyDemoView()
-    }
+#Preview {
+    StorageOnlyDemoView()
 }

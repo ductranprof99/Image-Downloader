@@ -1,51 +1,12 @@
 //
-//  SwiftUIDemoApp.swift
-//  ImageDownloader SwiftUI Demo
+//  FullFeaturedDemoView.swift
+//  SwiftUIExample
 //
-//  Main demo app showcasing all ImageDownloader features
+//  Created by ductd on 7/10/25.
 //
 
 import SwiftUI
-import ImageDownloader
 
-@available(iOS 15.0, *)
-@main
-struct SwiftUIDemoApp: App {
-    var body: some Scene {
-        WindowGroup {
-            MainDemoView()
-        }
-    }
-}
-
-@available(iOS 15.0, *)
-struct MainDemoView: View {
-    var body: some View {
-        TabView {
-            StorageOnlyDemoView()
-                .tabItem {
-                    Label("Storage Only", systemImage: "internaldrive")
-                }
-
-            StorageControlDemoView()
-                .tabItem {
-                    Label("Storage Control", systemImage: "folder.badge.gearshape")
-                }
-
-            NetworkCustomDemoView()
-                .tabItem {
-                    Label("Network Custom", systemImage: "network")
-                }
-
-            FullFeaturedDemoView()
-                .tabItem {
-                    Label("Full Demo", systemImage: "photo.on.rectangle")
-                }
-        }
-    }
-}
-
-@available(iOS 15.0, *)
 struct FullFeaturedDemoView: View {
     @StateObject private var viewModel = FullFeaturedViewModel()
 
@@ -94,7 +55,7 @@ struct FullFeaturedDemoView: View {
                         ForEach(viewModel.imageItems, id: \.id) { item in
                             AsyncImageView(
                                 url: item.url,
-                                config: FastConfig.shared,
+                                config: IDConfiguration.highPerformance,
                                 placeholder: Image(systemName: "photo"),
                                 errorImage: Image(systemName: "exclamationmark.triangle"),
                                 priority: .high
@@ -205,37 +166,5 @@ class FullFeaturedViewModel: ObservableObject {
 
     deinit {
         refreshTimer?.invalidate()
-    }
-}
-
-// MARK: - ImageItem Helper
-
-struct ImageItem: Identifiable {
-    let id = UUID()
-    let url: URL
-    let title: String
-
-    static func generateSampleData(count: Int) -> [ImageItem] {
-        (0..<count).map { index in
-            // Use picsum.photos for random images
-            let imageId = Int.random(in: 1...1000)
-            let width = [200, 300, 400].randomElement()!
-            let height = [200, 300, 400].randomElement()!
-            let url = URL(string: "https://picsum.photos/id/\(imageId)/\(width)/\(height)")!
-
-            return ImageItem(
-                url: url,
-                title: "Image \(index + 1)"
-            )
-        }
-    }
-}
-
-// MARK: - Preview
-
-@available(iOS 15.0, *)
-struct MainDemoView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainDemoView()
     }
 }
