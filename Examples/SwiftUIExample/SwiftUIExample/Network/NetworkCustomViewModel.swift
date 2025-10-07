@@ -65,11 +65,7 @@ class NetworkCustomViewModel: ObservableObject {
             .maxConcurrentDownloads(maxConcurrent)
             .timeout(timeout)
             .allowsCellularAccess(allowsCellular)
-            .retryPolicy(RetryPolicy(
-                maxRetries: maxRetries,
-                baseDelay: baseDelay,
-                backoffMultiplier: 2.0
-            ))
+            .retryPolicy(retryPolicy)
             .customHeaders(headers)
             .enableDebugLogging(enableRetryLogging)
             .build()
@@ -122,8 +118,7 @@ class NetworkCustomViewModel: ObservableObject {
                         self.loadError = error.localizedDescription
                     }
                 }
-            },
-            caller: self
+            }
         )
     }
 }

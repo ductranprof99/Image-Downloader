@@ -2,7 +2,7 @@
 //  ResourceModel.swift
 //  ImageDownloader
 //
-//  Model representing a downloadable image resource
+//  Created by ductd on 7/10/25.
 //
 
 import Foundation
@@ -10,22 +10,7 @@ import Foundation
 import UIKit
 #endif
 
-import CryptoKit
-
-public enum ResourceState {
-    case unknown
-    case downloading
-    case available
-    case failed
-}
-
-@objc public enum ResourcePriority: Int {
-    case low
-    case high
-}
-
 internal class ResourceModel {
-
     // MARK: - Properties
 
     public let url: URL

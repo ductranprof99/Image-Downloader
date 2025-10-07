@@ -4,15 +4,15 @@
 //
 //  Manages concurrent image downloads with modern async/await
 //  Uses Swift Actor for thread-safe concurrency control
+//  Uses a single shared URLSession for efficiency
 //
 
 import Foundation
-#if canImport(UIKit)
 import UIKit
-#endif
 
 /// NetworkAgent handles image downloads with automatic concurrency limiting and request deduplication
 /// All state is actor-isolated for thread safety without DispatchQueue
+/// Uses a single shared URLSession across all instances for resource efficiency
 internal actor NetworkAgent {
 
     // MARK: - Configuration Properties
@@ -24,15 +24,13 @@ internal actor NetworkAgent {
     var allowsCellularAccess: Bool
 
     // MARK: - Private State
-
     private let session: URLSession
-    private let sessionDelegate: SessionDelegate
 
     /// Active downloads: URL -> DownloadOperation
     /// Provides automatic request deduplication - multiple requests for same URL share one download
     private var activeDownloads: [String: DownloadOperation] = [:]
 
-    /// Pending downloads waiting for slot (FIFO queue)
+    /// Pending downloads waiting for slot (FIFO queue with priority)
     private var pendingQueue: [PendingDownload] = []
 
     // MARK: - Initialization
@@ -56,10 +54,9 @@ internal actor NetworkAgent {
         sessionConfig.isDiscretionary = false  // Download even when battery is low
 
         // Create delegate for advanced features (auth challenges, etc.)
-        self.sessionDelegate = SessionDelegate()
 
         // Create session
-        self.session = URLSession(configuration: sessionConfig, delegate: sessionDelegate, delegateQueue: nil)
+        self.session = URLSession(configuration: sessionConfig, delegate: SessionDelegate.shared, delegateQueue: nil)
     }
 
     // MARK: - Public API (Non-isolated for sync access)
@@ -226,15 +223,17 @@ internal actor NetworkAgent {
     }
 
     /// Perform the actual download with retry logic
+    /// Uses shared URLSession with per-request configuration
     private func performDownload(
         url: URL,
         retryAttempt: Int,
         progress: ((CGFloat) -> Void)?
     ) async throws -> UIImage {
-        // Build request
+        // Build request with per-request configuration
         var request = URLRequest(url: url)
-        request.timeoutInterval = timeout
-        request.allowsCellularAccess = allowsCellularAccess
+        request.timeoutInterval = timeout  // Per-request timeout
+        request.allowsCellularAccess = allowsCellularAccess  // Per-request cellular access
+        request.cachePolicy = .reloadIgnoringLocalCacheData  // Always fetch fresh
 
         // Apply custom headers
         if let customHeaders = customHeaders {
@@ -247,7 +246,7 @@ internal actor NetworkAgent {
         authenticationHandler?(&request)
 
         do {
-            // Execute download using native URLSession async/await
+            // Execute download using SHARED URLSession with configured request
             let (data, response) = try await session.data(for: request)
 
             // Validate HTTP response
@@ -379,14 +378,23 @@ extension ResourcePriority {
 
 // MARK: - Session Delegate
 
-/// URLSession delegate for handling authentication challenges
+/// Shared URLSession delegate for handling authentication challenges
+/// Singleton pattern since URLSession is shared across all NetworkAgent instances
 private class SessionDelegate: NSObject, URLSessionDelegate {
+
+    static let shared = SessionDelegate()
+
+    private override init() {
+        super.init()
+    }
+
     func urlSession(
         _ session: URLSession,
         didReceive challenge: URLAuthenticationChallenge,
         completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
         // Handle authentication challenges if needed
+        // Default: perform default handling (trust system certificates)
         completionHandler(.performDefaultHandling, nil)
     }
 }

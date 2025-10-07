@@ -37,8 +37,8 @@ public class ConfigBuilder {
     }
 
     @discardableResult
-    public func retryPolicy(_ policy: RetryPolicy) -> Self {
-        networkConfig.retryPolicy = policy
+    public func retryPolicy(_ policy: IDRetryPolicy) -> Self {
+        networkConfig.retryPolicy = policy.toSwift()
         return self
     }
 
@@ -168,7 +168,7 @@ extension ConfigBuilder {
             .maxConcurrentDownloads(8)
             .highPriorityLimit(100)
             .lowPriorityLimit(200)
-            .retryPolicy(.default)
+            .retryPolicy(.defaultPolicy())
     }
 
     /// Start with low memory preset

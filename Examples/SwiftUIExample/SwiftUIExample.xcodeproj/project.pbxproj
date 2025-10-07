@@ -6,10 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		300F14E82E94EBF5002CFFAE /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 300F14E72E94EBF5002CFFAE /* ImageDownloader */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		300F14C82E94EB0D002CFFAE /* SwiftUIExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftUIExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -27,7 +23,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				300F14E82E94EBF5002CFFAE /* ImageDownloader in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -101,7 +96,6 @@
 			mainGroup = 300F14BF2E94EB0D002CFFAE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				300F14E62E94EBF5002CFFAE /* XCLocalSwiftPackageReference "../../../Image-Downloader" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 300F14C92E94EB0D002CFFAE /* Products */;
@@ -329,13 +323,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		300F14E62E94EBF5002CFFAE /* XCLocalSwiftPackageReference "../../../Image-Downloader" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../Image-Downloader";
-		};
-/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		300F14E72E94EBF5002CFFAE /* ImageDownloader */ = {
