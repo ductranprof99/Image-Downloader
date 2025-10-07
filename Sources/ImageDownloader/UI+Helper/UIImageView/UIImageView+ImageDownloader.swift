@@ -60,7 +60,7 @@ public extension UIImageView {
     ///   - onCompletion: Completion callback with image result
     func setImage(
         with url: URL,
-        config: ImageDownloaderConfigProtocol? = nil,
+        config: IDConfiguration? = nil,
         placeholder: UIImage? = nil,
         errorImage: UIImage? = nil,
         priority: ResourcePriority = .low,
@@ -88,7 +88,7 @@ public extension UIImageView {
         manager.requestImage(
             at: url,
             priority: priority,
-            shouldSaveToStorage: config?.storageConfig.shouldSaveToStorage ?? true,
+            shouldSaveToStorage: config?.storage.shouldSaveToStorage ?? true,
             progress: { [weak self] progress in
                 guard self != nil else { return }
                 DispatchQueue.main.async {
@@ -265,11 +265,10 @@ public extension UIImageView {
         onProgress: ((CGFloat) -> Void)?,
         onCompletion: ((UIImage?, Error?, Bool, Bool) -> Void)?
     ) {
-        // Create temporary config with shouldSaveToStorage setting
-        var storageConfig = DefaultStorageConfig()
-        storageConfig.shouldSaveToStorage = shouldSaveToStorage
-
-        let config = DefaultConfig(storageConfig: storageConfig)
+        // Create config with shouldSaveToStorage setting
+        let config = ConfigBuilder()
+            .shouldSaveToStorage(shouldSaveToStorage)
+            .build()
 
         setImage(
             with: url,

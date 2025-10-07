@@ -13,7 +13,7 @@ class DetailViewController: UIViewController {
     // MARK: - Properties
 
     private let item: ImageItem
-    private let config: ImageDownloaderConfigProtocol
+    private let config: IDConfiguration
 
     private let scrollView: UIScrollView = {
         let scroll = UIScrollView()
@@ -58,7 +58,7 @@ class DetailViewController: UIViewController {
 
     // MARK: - Initialization
 
-    init(item: ImageItem, config: ImageDownloaderConfigProtocol) {
+    init(item: ImageItem, config: IDConfiguration) {
         self.item = item
         self.config = config
         super.init(nibName: nil, bundle: nil)

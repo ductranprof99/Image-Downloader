@@ -70,7 +70,8 @@ imageView.image = result.image
 
 ```swift
 // Use preset configuration
-let image = try await UIImage.load(from: imageURL, config: FastConfig.shared)
+let manager = ImageDownloaderManager.instance(for: IDConfiguration.highPerformance)
+let result = try await manager.requestImageAsync(at: imageURL)
 
 // Or build custom config
 let config = ConfigBuilder()
@@ -79,7 +80,8 @@ let config = ConfigBuilder()
     .compressionProvider(JPEGCompressionProvider(quality: 0.8))
     .build()
 
-let image = try await UIImage.load(from: imageURL, config: config)
+let manager = ImageDownloaderManager.instance(for: config)
+let result = try await manager.requestImageAsync(at: imageURL)
 ```
 
 ## 📚 Documentation
@@ -117,23 +119,30 @@ let image = try await UIImage.load(from: url, config: config)
 ### Offline-First App
 
 ```swift
-let config = OfflineFirstConfig.shared
-// - WiFi only
-// - Huge cache (200/500)
-// - Conservative retry
-// - Adaptive compression
+// Use preset offline-first configuration
+let manager = ImageDownloaderManager.instance(for: IDConfiguration.offlineFirst)
+let result = try await manager.requestImageAsync(at: url)
 
-let image = try await UIImage.load(from: url, config: config)
+// Or customize with builder
+let config = ConfigBuilder.offlineFirst()
+    .highPriorityLimit(200)
+    .lowPriorityLimit(500)
+    .build()
+
+let manager = ImageDownloaderManager.instance(for: config)
+let result = try await manager.requestImageAsync(at: url)
 ```
 
 ### High-Performance Feed
 
 ```swift
-let config = FastConfig.shared
-// - 8 concurrent downloads
-// - Aggressive retry
-// - Large cache
-// - Request deduplication
+// Use preset high-performance configuration
+imageView.setImage(with: url, config: IDConfiguration.highPerformance)
+
+// Or build custom high-performance config
+let config = ConfigBuilder.highPerformance()
+    .maxConcurrentDownloads(10)
+    .build()
 
 imageView.setImage(with: url, config: config)
 ```
@@ -145,10 +154,12 @@ Different configs for different use cases:
 
 ```swift
 // Avatars: fast, high priority
-let avatar = try await UIImage.load(from: avatarURL, config: FastConfig.shared)
+let avatarManager = ImageDownloaderManager.instance(for: IDConfiguration.highPerformance)
+let avatar = try await avatarManager.requestImageAsync(at: avatarURL, priority: .high)
 
 // Photos: offline-first, huge cache
-let photo = try await UIImage.load(from: photoURL, config: OfflineFirstConfig.shared)
+let photoManager = ImageDownloaderManager.instance(for: IDConfiguration.offlineFirst)
+let photo = try await photoManager.requestImageAsync(at: photoURL)
 ```
 
 ### Retry with Exponential Backoff

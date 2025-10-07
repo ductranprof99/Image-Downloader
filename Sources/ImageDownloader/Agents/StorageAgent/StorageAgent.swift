@@ -11,7 +11,7 @@ import UIKit
 #endif
 import CryptoKit
 
-public class StorageAgent {
+class StorageAgent {
 
     // MARK: - Properties
 
@@ -28,24 +28,21 @@ public class StorageAgent {
 
     // MARK: - Initialization
 
-    public init(
-        storagePath: String? = nil,
-        identifierProvider: ResourceIdentifierProvider? = nil,
-        pathProvider: StoragePathProvider? = nil,
-        compressionProvider: ImageCompressionProvider? = nil
+    init(
+        config: StorageConfig
     ) {
         self.fileManager = FileManager.default
 
-        if let storagePath = storagePath {
+        if let storagePath = config.storagePath {
             self.storageURL = URL(fileURLWithPath: storagePath)
         } else {
             self.storageURL = Self.defaultStorageDirectory()
         }
 
         // Use defaults for backward compatibility
-        self.identifierProvider = identifierProvider ?? MD5IdentifierProvider()
-        self.pathProvider = pathProvider ?? FlatStoragePathProvider()
-        self.compressionProvider = compressionProvider ?? PNGCompressionProvider()
+        self.identifierProvider = config.identifierProvider
+        self.pathProvider = config.pathProvider
+        self.compressionProvider = config.compressionProvider
 
         createStorageDirectoryIfNeeded()
     }
@@ -53,7 +50,7 @@ public class StorageAgent {
     // MARK: - Public Methods (Async/Await)
 
     /// Check if image exists in storage (synchronous)
-    public func hasImage(for url: URL) -> Bool {
+    func hasImage(for url: URL) -> Bool {
         let filePath = self.filePath(for: url)
         return fileManager.fileExists(atPath: filePath)
     }

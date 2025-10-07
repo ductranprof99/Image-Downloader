@@ -302,13 +302,16 @@ class ImageViewController: UIViewController {
 
 ```swift
 // Enable logging to see retry attempts
-var config = DefaultNetworkConfig()
-config.retryPolicy = RetryPolicy(
-    maxRetries: 3,
-    baseDelay: 1.0,
-    backoffMultiplier: 2.0,
-    enableLogging: true  // Shows retry logs
-)
+let config = ConfigBuilder()
+    .retryPolicy(RetryPolicy(
+        maxRetries: 3,
+        baseDelay: 1.0,
+        backoffMultiplier: 2.0
+    ))
+    .enableDebugLogging(true)  // Shows retry logs
+    .build()
+
+let manager = ImageDownloaderManager.instance(for: config)
 ```
 
 Output:
@@ -321,47 +324,65 @@ Output:
 ### Custom Network Config
 
 ```swift
-struct MyNetworkConfig: NetworkConfigProtocol {
-    var maxConcurrentDownloads: Int = 10
-    var timeout: TimeInterval = 30
-    var retryPolicy: RetryPolicy = RetryPolicy(
-        maxRetries: 5,
-        baseDelay: 1.0,
-        enableLogging: true
-    )
-    var customHeaders: [String: String]? = [
-        "User-Agent": "MyApp/1.0"
-    ]
-    var authenticationHandler: ((inout URLRequest) -> Void)? = { request in
+// Option 1: Using ConfigBuilder (Recommended)
+let config = ConfigBuilder()
+    .maxConcurrentDownloads(10)
+    .timeout(30)
+    .retryPolicy(.aggressive)  // Use RetryPolicy static presets
+    .customHeaders(["User-Agent": "MyApp/1.0"])
+    .authenticationHandler { request in
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
     }
-    var allowsCellularAccess: Bool = true
-    var enableBackgroundTasks: Bool = true
-}
+    .allowsCellularAccess(true)
+    .enableDebugLogging(true)
+    .build()
 
-struct MyConfig: ImageDownloaderConfigProtocol {
-    var networkConfig: NetworkConfigProtocol = MyNetworkConfig()
-    var cacheConfig: CacheConfigProtocol = DefaultCacheConfig()
-    var storageConfig: StorageConfigProtocol = DefaultStorageConfig()
-    var enableDebugLogging: Bool = false
-}
+let manager = ImageDownloaderManager.instance(for: config)
+imageView.setImage(with: url, config: config)
 
-// Use it
-let manager = ImageDownloaderManager.instance(for: MyConfig())
-imageView.setImage(with: url, config: MyConfig())
+// Option 2: Direct IDConfiguration (ObjC compatible)
+let networkConfig = IDNetworkConfig(
+    maxConcurrentDownloads: 10,
+    timeout: 30,
+    allowsCellularAccess: true,
+    retryPolicy: IDRetryPolicy.aggressivePolicy(),
+    customHeaders: ["User-Agent": "MyApp/1.0"],
+    authenticationHandler: { request in
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+    }
+)
+
+let config = IDConfiguration(
+    network: networkConfig,
+    cache: IDCacheConfig(highPriorityLimit: 100, lowPriorityLimit: 200),
+    storage: IDStorageConfig(shouldSaveToStorage: true),
+    enableDebugLogging: true
+)
+
+let manager = ImageDownloaderManager.instance(for: config)
 ```
 
 ### Use Preset Configs
 
 ```swift
-// Fast config - high concurrency
-imageView.setImage(with: url, config: FastConfig())
+// High performance - high concurrency, aggressive retry
+imageView.setImage(with: url, config: IDConfiguration.highPerformance)
 
-// Offline-first - prefers cache/storage
-imageView.setImage(with: url, config: OfflineFirstConfig())
+// Offline-first - prefers cache/storage, conservative network
+imageView.setImage(with: url, config: IDConfiguration.offlineFirst)
 
-// Low memory - small cache
-imageView.setImage(with: url, config: LowMemoryConfig())
+// Low memory - small cache limits
+imageView.setImage(with: url, config: IDConfiguration.lowMemory)
+
+// Default - balanced settings
+imageView.setImage(with: url, config: IDConfiguration.default)
+
+// Custom preset using builder
+let config = ConfigBuilder.highPerformance()
+    .maxConcurrentDownloads(12)  // Override specific settings
+    .build()
+
+imageView.setImage(with: url, config: config)
 ```
 
 ---
@@ -637,8 +658,13 @@ manager.requestImage(at: url) { image, _, _, _ in
 
 ```swift
 #if DEBUG
-let policy = RetryPolicy(maxRetries: 3, baseDelay: 1.0, enableLogging: true)
+let config = ConfigBuilder()
+    .retryPolicy(RetryPolicy(maxRetries: 3, baseDelay: 1.0))
+    .enableDebugLogging(true)
+    .build()
 #else
-let policy = RetryPolicy.default
+let config = IDConfiguration.default
 #endif
+
+let manager = ImageDownloaderManager.instance(for: config)
 ```

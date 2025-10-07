@@ -121,7 +121,7 @@ class ImageCell: UITableViewCell {
 
     // MARK: - Configuration
 
-    func configure(with item: ImageItem, config: ImageDownloaderConfigProtocol) {
+    func configure(with item: ImageItem, config: IDConfiguration) {
         titleLabel.text = item.title
         subtitleLabel.text = item.subtitle
         statusLabel.text = "⏳ Loading..."

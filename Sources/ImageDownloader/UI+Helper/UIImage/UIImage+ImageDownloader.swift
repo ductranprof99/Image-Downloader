@@ -23,7 +23,7 @@ extension UIImage {
     @available(iOS 13.0, macOS 10.15, *)
     public static func load(
         from url: URL,
-        config: ImageDownloaderConfigProtocol? = nil,
+        config: IDConfiguration? = nil,
         priority: ResourcePriority = .low
     ) async throws -> UIImage {
         let manager = ImageDownloaderManager.instance(for: config)
@@ -41,7 +41,7 @@ extension UIImage {
     @available(iOS 13.0, macOS 10.15, *)
     public static func load(
         from urlString: String,
-        config: ImageDownloaderConfigProtocol? = nil,
+        config: IDConfiguration? = nil,
         priority: ResourcePriority = .low
     ) async throws -> UIImage {
         guard let url = URL(string: urlString) else {
@@ -61,7 +61,7 @@ extension UIImage {
     ///   - completion: Completion callback with image or error
     public static func load(
         from url: URL,
-        config: ImageDownloaderConfigProtocol? = nil,
+        config: IDConfiguration? = nil,
         priority: ResourcePriority = .low,
         progress: ((CGFloat) -> Void)? = nil,
         completion: @escaping (Result<UIImage, Error>) -> Void
@@ -95,7 +95,7 @@ extension UIImage {
     ///   - completion: Completion callback with image or error
     public static func load(
         from urlString: String,
-        config: ImageDownloaderConfigProtocol? = nil,
+        config: IDConfiguration? = nil,
         priority: ResourcePriority = .low,
         progress: ((CGFloat) -> Void)? = nil,
         completion: @escaping (Result<UIImage, Error>) -> Void

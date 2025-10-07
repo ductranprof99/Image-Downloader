@@ -10,7 +10,6 @@ import Foundation
 import UIKit
 #endif
 
-
 internal class NetworkAgent: NSObject {
 
     // MARK: - Properties
@@ -43,21 +42,15 @@ internal class NetworkAgent: NSObject {
     // MARK: - Initialization
 
     init(
-        maxConcurrentDownloads: Int = 4,
-        timeout: TimeInterval = 30,
-        retryPolicy: RetryPolicy = .default,
-        customHeaders: [String: String]? = nil,
-        authenticationHandler: ((inout URLRequest) -> Void)? = nil,
-        allowsCellularAccess: Bool = true,
-        enableBackgroundTasks: Bool = true
+        config: NetworkConfig
     ) {
-        self.maxConcurrentDownloads = maxConcurrentDownloads
-        self.timeout = timeout
-        self.retryPolicy = retryPolicy
-        self.customHeaders = customHeaders
-        self.authenticationHandler = authenticationHandler
-        self.allowsCellularAccess = allowsCellularAccess
-        self.enableBackgroundTasks = enableBackgroundTasks
+        self.maxConcurrentDownloads = config.maxConcurrentDownloads
+        self.timeout = config.timeout
+        self.retryPolicy = config.retryPolicy
+        self.customHeaders = config.customHeaders
+        self.authenticationHandler = config.authenticationHandler
+        self.allowsCellularAccess = config.allowsCellularAccess
+        self.enableBackgroundTasks = config.enableBackgroundTasks
         self.queue = NetworkQueue()
         super.init()
 

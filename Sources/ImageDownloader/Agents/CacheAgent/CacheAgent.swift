@@ -10,15 +10,6 @@ import Foundation
 import UIKit
 #endif
 
-public enum CachePriority {
-    case low    // Can be cleared by memory pressure, replaced when out of slots
-    case high   // Only cleared by explicit clear/reset, saved to storage when evicted
-}
-
-public protocol CacheAgentDelegate: AnyObject {
-    func cacheDidEvictImage(for url: URL, priority: CachePriority)
-}
-
 private class CacheEntry {
     var image: UIImage
     var url: URL
@@ -33,12 +24,9 @@ private class CacheEntry {
     }
 }
 
-public class CacheAgent {
-
-    // MARK: - Properties
-
-    public weak var delegate: CacheAgentDelegate?
-
+final class CacheAgent {
+    // MARK: - Propertiey
+    weak var delegate: CacheAgentDelegate?
     private var cacheData: [String: CacheEntry] = [:]
     private var highPriorityKeys: [String] = []
     private var lowPriorityKeys: [String] = []
@@ -48,9 +36,9 @@ public class CacheAgent {
 
     // MARK: - Initialization
 
-    public init(highPriorityLimit: Int = 50, lowPriorityLimit: Int = 100) {
-        self.highPriorityLimit = highPriorityLimit
-        self.lowPriorityLimit = lowPriorityLimit
+    public init(config: CacheConfig) {
+        self.highPriorityLimit = config.highPriorityLimit
+        self.lowPriorityLimit = config.lowPriorityLimit
         setupMemoryWarningObserver()
     }
 

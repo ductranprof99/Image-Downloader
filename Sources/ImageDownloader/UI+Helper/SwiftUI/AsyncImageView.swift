@@ -21,7 +21,7 @@ public struct AsyncImageView: View {
     // MARK: - Properties
 
     private let url: URL
-    private let config: ImageDownloaderConfigProtocol?
+    private let config: IDConfiguration?
     private let placeholder: Image?
     private let errorImage: Image?
     private let priority: ResourcePriority
@@ -36,7 +36,7 @@ public struct AsyncImageView: View {
 
     public init(
         url: URL,
-        config: ImageDownloaderConfigProtocol? = nil,
+        config: IDConfiguration? = nil,
         placeholder: Image? = nil,
         errorImage: Image? = nil,
         priority: ResourcePriority = .low
@@ -161,14 +161,14 @@ public class ImageLoader: ObservableObject {
     @Published public var error: Error?
 
     private var url: URL?
-    private var config: ImageDownloaderConfigProtocol?
+    private var config: IDConfiguration?
 
     public init() {}
 
     @MainActor
     public func load(
         from url: URL,
-        config: ImageDownloaderConfigProtocol? = nil,
+        config: IDConfiguration? = nil,
         priority: ResourcePriority = .low
     ) {
         self.url = url
@@ -219,14 +219,14 @@ public struct ProgressiveAsyncImage<Content: View, Placeholder: View>: View {
     @StateObject private var loader = ImageLoader()
 
     private let url: URL
-    private let config: ImageDownloaderConfigProtocol?
+    private let config: IDConfiguration?
     private let priority: ResourcePriority
     private let content: (Image, CGFloat) -> Content
     private let placeholder: () -> Placeholder
 
     public init(
         url: URL,
-        config: ImageDownloaderConfigProtocol? = nil,
+        config: IDConfiguration? = nil,
         priority: ResourcePriority = .high,
         @ViewBuilder content: @escaping (Image, CGFloat) -> Content,
         @ViewBuilder placeholder: @escaping () -> Placeholder
@@ -272,7 +272,7 @@ extension ProgressiveAsyncImage where Content == Image, Placeholder == Color {
 
     public init(
         url: URL,
-        config: ImageDownloaderConfigProtocol? = nil,
+        config: IDConfiguration? = nil,
         priority: ResourcePriority = .high
     ) {
         self.url = url

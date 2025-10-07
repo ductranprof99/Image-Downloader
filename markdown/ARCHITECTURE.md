@@ -161,25 +161,42 @@ ImageDownloader uses a **layered architecture** with clear separation of concern
 ### Configuration System Diagram
 
 ```
-┌────────────────────────────────────────────────────┐
-│      ImageDownloaderConfigProtocol                 │
-│  (Main Configuration Interface)                    │
-└──────────┬─────────────┬──────────────┬────────────┘
+┌─────────────────────────────────────────────────────┐
+│           IDConfiguration (Main Config)             │
+│  • Static presets (default, highPerformance, etc.)  │
+│  • Wraps network, cache, storage configs            │
+└──────────┬─────────────┬──────────────┬─────────────┘
            │             │              │
-    ┌──────▼──────┐  ┌───▼───────┐  ┌───▼───────────┐
-    │  Network    │  │   Cache   │  │   Storage     │
-    │   Config    │  │   Config  │  │    Config     │
-    └──────┬──────┘  └───┬───────┘  └───┬───────────┘
-           │             │              │
-           ▼             ▼              ▼
-    ┌───────────────────────────────────────────────┐
-    │          Implementations                      │
-    │  • DefaultConfig                              │
-    │  • FastConfig                                 │
-    │  • OfflineFirstConfig                         │
-    │  • LowMemoryConfig                            │
-    │  • Custom configs via ConfigBuilder           │
-    └───────────────────────────────────────────────┘
+    ┌──────▼──────────┐  ┌───▼──────────┐  ┌───▼────────────┐
+    │ IDNetworkConfig │  │ IDCacheConfig│  │IDStorageConfig │
+    │ (ObjC class)    │  │ (ObjC class) │  │ (ObjC class)   │
+    └──────┬──────────┘  └───┬──────────┘  └───┬────────────┘
+           │                 │                  │
+           ▼                 ▼                  ▼
+    ┌──────────────────────────────────────────────────────┐
+    │         Internal Conversion (.toInternalConfig())    │
+    └──────────┬─────────────┬──────────────┬──────────────┘
+               │             │              │
+        ┌──────▼──────┐  ┌───▼───────┐  ┌───▼───────────┐
+        │ NetworkConfig│  │CacheConfig│  │StorageConfig  │
+        │ (Swift struct│  │(Swift struct) (Swift struct)│
+        └──────┬──────┘  └───┬───────┘  └───┬───────────┘
+               │             │              │
+               ▼             ▼              ▼
+        ┌──────────────────────────────────────────┐
+        │         Agents                           │
+        │  • NetworkAgent                          │
+        │  • CacheAgent                            │
+        │  • StorageAgent                          │
+        └──────────────────────────────────────────┘
+
+Alternative: ConfigBuilder (Fluent API)
+┌──────────────────────────────────────────────────────┐
+│              ConfigBuilder                           │
+│  • Static presets: .default(), .highPerformance()    │
+│  • Fluent methods: .maxConcurrentDownloads(8)        │
+│  • .build() → IDConfiguration                        │
+└──────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -204,29 +221,37 @@ class ImageDownloaderManager {
     static let shared: ImageDownloaderManager
 
     // Factory for custom configs
-    static func instance(for config: ImageDownloaderConfigProtocol?) -> ImageDownloaderManager
+    static func instance(for config: IDConfiguration?) -> ImageDownloaderManager
 
-    // Async/await API
+    // Pure async/await API (recommended)
+    func requestImageAsync(at url: URL,
+                          priority: ResourcePriority = .low,
+                          shouldSaveToStorage: Bool? = nil) async throws -> ImageResult
+
+    // Completion handler API (ObjC compatible)
     func requestImage(at url: URL,
-                     priority: ResourcePriority,
-                     shouldSaveToStorage: Bool?,
-                     progress: ImageProgressBlock?,
-                     caller: AnyObject?) async throws -> ImageResult
+                     priority: ResourcePriority = .low,
+                     shouldSaveToStorage: Bool? = nil,
+                     progress: ImageProgressBlock? = nil,
+                     completion: ImageCompletionBlock? = nil,
+                     caller: AnyObject? = nil)
 
-    // Completion handler API
-    func requestImage(at url: URL,
-                     priority: ResourcePriority,
-                     shouldSaveToStorage: Bool?,
-                     progress: ImageProgressBlock?,
-                     completion: ImageCompletionBlock?,
-                     caller: AnyObject?)
-
-    // Configuration
-    func configure(_ configuration: ImageDownloaderConfiguration)
+    // Progress streaming
+    func requestImageWithProgress(at url: URL,
+                                 priority: ResourcePriority = .low)
+        -> AsyncThrowingStream<ImageLoadingProgress, Error>
 
     // Cache management
-    func clearCache(for url: URL)
+    func clearLowPriorityCache()
     func clearAllCache()
+    func clearStorage(completion: ((Bool) -> Void)?)
+    func hardReset()
+
+    // Statistics
+    func cacheSizeHigh() -> Int
+    func cacheSizeLow() -> Int
+    func storageSizeBytes() -> UInt64
+    func activeDownloadsCount() -> Int
 
     // Observers
     func addObserver(_ observer: ImageDownloaderObserver)
@@ -409,15 +434,26 @@ enum ResourceState {
 ### 2. Configuration Flow
 
 ```
-1. Client provides config (or nil for default)
+1. Client creates config
+   ├─▶ Option A: Static preset (IDConfiguration.highPerformance)
+   ├─▶ Option B: Direct init (IDConfiguration(network:cache:storage:))
+   └─▶ Option C: Builder (ConfigBuilder().maxConcurrent(8).build())
+
+2. Manager instance creation
    └─▶ Manager.instance(for: config)
 
-2. Config injection
-   ├─▶ NetworkConfig → NetworkAgent
-   ├─▶ CacheConfig → CacheAgent
-   └─▶ StorageConfig → StorageAgent
+3. Config conversion and injection
+   ├─▶ IDConfiguration.toInternalConfigs()
+   │   ├─▶ IDNetworkConfig → NetworkConfig (Swift struct)
+   │   ├─▶ IDCacheConfig → CacheConfig (Swift struct)
+   │   └─▶ IDStorageConfig → StorageConfig (Swift struct)
+   │
+   └─▶ Inject into agents
+       ├─▶ NetworkConfig → NetworkAgent
+       ├─▶ CacheConfig → CacheAgent
+       └─▶ StorageConfig → StorageAgent
 
-3. Request execution with config
+4. Request execution
    └─▶ Each agent uses injected config
 ```
 
@@ -499,27 +535,67 @@ class AdaptiveCompressionProvider: ImageCompressionProvider { }
 **Used in:** Configuration building
 
 ```swift
-ConfigBuilder()
+// Fluent API
+let config = ConfigBuilder()
     .maxConcurrentDownloads(8)
     .timeout(30)
+    .retryPolicy(.aggressivePolicy())
+    .build()
+
+// Preset + customization
+let config = ConfigBuilder.highPerformance()
+    .timeout(120)
     .build()
 ```
 
 **Rationale:** Fluent, readable configuration creation
 
-### 6. Protocol-Oriented Design
+### 6. Two-Layer Configuration Design
 
 **Used in:** Configuration system
 
 ```swift
-protocol ImageDownloaderConfigProtocol {
-    var networkConfig: NetworkConfigProtocol { get }
-    var cacheConfig: CacheConfigProtocol { get }
-    var storageConfig: StorageConfigProtocol { get }
+// Public layer (ObjC compatible)
+class IDConfiguration: NSObject {
+    let network: IDNetworkConfig
+    let cache: IDCacheConfig
+    let storage: IDStorageConfig
+}
+
+// Internal layer (Swift-only)
+struct NetworkConfig {
+    let maxConcurrentDownloads: Int
+    let enableBackgroundTasks: Bool  // Not exposed publicly
+}
+
+// Conversion
+config.toInternalConfigs() -> (NetworkConfig, CacheConfig, StorageConfig)
+```
+
+**Rationale:**
+- Public API is stable and ObjC-compatible
+- Internal implementation can use Swift features
+- Testable, mockable, flexible
+
+### 7. Protocol-Oriented Customization
+
+**Used in:** Provider protocols
+
+```swift
+protocol ResourceIdentifierProvider {
+    func identifier(for url: URL) -> String
+}
+
+protocol StoragePathProvider {
+    func path(for url: URL, identifier: String) -> String
+}
+
+protocol ImageCompressionProvider {
+    func compress(_ image: UIImage) -> Data?
 }
 ```
 
-**Rationale:** Testable, mockable, flexible architecture
+**Rationale:** Pluggable, customizable behavior
 
 ---
 
@@ -782,21 +858,29 @@ override func prepareForReuse() {
 ### 3. Match Config to Use Case
 
 ```swift
-// Fast config for small, frequent images
-avatarImageView.setImage(with: url, config: FastConfig.shared)
+// High performance for small, frequent images (avatars)
+avatarImageView.setImage(with: url, config: IDConfiguration.highPerformance)
 
-// Offline-first for large, important images
-photoImageView.setImage(with: url, config: OfflineFirstConfig.shared)
+// Offline-first for large, important images (photos)
+photoImageView.setImage(with: url, config: IDConfiguration.offlineFirst)
+
+// Low memory for memory-constrained scenarios
+imageView.setImage(with: url, config: IDConfiguration.lowMemory)
 ```
 
 ### 4. Monitor Memory Usage
 
 ```swift
 // Respond to memory warnings
-clearLowPriorityCache()
+ImageDownloaderManager.shared.clearLowPriorityCache()
 
 // Use low memory config when needed
-LowMemoryConfig.shared
+let manager = ImageDownloaderManager.instance(for: IDConfiguration.lowMemory)
+
+// Check statistics
+print("High priority: \(manager.cacheSizeHigh())")
+print("Low priority: \(manager.cacheSizeLow())")
+print("Storage: \(manager.storageSizeBytes()) bytes")
 ```
 
 ---

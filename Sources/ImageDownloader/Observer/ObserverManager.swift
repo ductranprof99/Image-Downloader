@@ -7,7 +7,7 @@
 
 import Foundation
 
-public class ObserverManager {
+class ObserverManager {
 
     // MARK: - Properties
 
@@ -20,19 +20,19 @@ public class ObserverManager {
 
     // MARK: - Public Methods
 
-    public func addObserver(_ observer: ImageDownloaderObserver) {
+    func addObserver(_ observer: ImageDownloaderObserver) {
         observerQueue.sync {
             observers.add(observer as AnyObject)
         }
     }
 
-    public func removeObserver(_ observer: ImageDownloaderObserver) {
+    func removeObserver(_ observer: ImageDownloaderObserver) {
         observerQueue.sync {
             observers.remove(observer as AnyObject)
         }
     }
 
-    public func notifyImageDidLoad(url: URL, fromCache: Bool, fromStorage: Bool) {
+    func notifyImageDidLoad(url: URL, fromCache: Bool, fromStorage: Bool) {
         observerQueue.async { [weak self] in
             guard let self = self else { return }
             for observer in self.observers.allObjects {
@@ -49,7 +49,7 @@ public class ObserverManager {
         }
     }
 
-    public func notifyImageDidFail(url: URL, error: Error) {
+    func notifyImageDidFail(url: URL, error: Error) {
         observerQueue.async { [weak self] in
             guard let self = self else { return }
             for observer in self.observers.allObjects {
@@ -66,7 +66,7 @@ public class ObserverManager {
         }
     }
 
-    public func notifyDownloadProgress(url: URL, progress: CGFloat) {
+    func notifyDownloadProgress(url: URL, progress: CGFloat) {
         observerQueue.async { [weak self] in
             guard let self = self else { return }
             for observer in self.observers.allObjects {
@@ -83,7 +83,7 @@ public class ObserverManager {
         }
     }
 
-    public func notifyWillStartDownloading(url: URL) {
+    func notifyWillStartDownloading(url: URL) {
         observerQueue.async { [weak self] in
             guard let self = self else { return }
             for observer in self.observers.allObjects {

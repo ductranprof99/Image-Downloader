@@ -13,7 +13,7 @@ class FeedViewController: UIViewController {
     // MARK: - Properties
 
     private var imageItems: [ImageItem] = []
-    private var currentConfig: ImageDownloaderConfigProtocol = FastConfig.shared
+    private var currentConfig: IDConfiguration = .fast
 
     private lazy var tableView: UITableView = {
         let table = UITableView()
@@ -258,22 +258,22 @@ class FeedViewController: UIViewController {
         )
 
         alert.addAction(UIAlertAction(title: "⚡️ Fast Config (Default)", style: .default) { [weak self] _ in
-            self?.currentConfig = FastConfig.shared
+            self?.currentConfig = .fast
             self?.tableView.reloadData()
         })
 
         alert.addAction(UIAlertAction(title: "📶 Offline First", style: .default) { [weak self] _ in
-            self?.currentConfig = OfflineFirstConfig.shared
+            self?.currentConfig = .offlineFirst
             self?.tableView.reloadData()
         })
 
         alert.addAction(UIAlertAction(title: "🧠 Low Memory", style: .default) { [weak self] _ in
-            self?.currentConfig = LowMemoryConfig.shared
+            self?.currentConfig = .lowMemory
             self?.tableView.reloadData()
         })
 
         alert.addAction(UIAlertAction(title: "⚙️ Default Config", style: .default) { [weak self] _ in
-            self?.currentConfig = DefaultConfig.shared
+            self?.currentConfig = .default
             self?.tableView.reloadData()
         })
 

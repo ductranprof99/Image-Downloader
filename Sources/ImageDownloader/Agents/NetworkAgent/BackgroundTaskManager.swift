@@ -10,7 +10,7 @@ import UIKit
 import Foundation
 
 /// Manages background task lifecycle for network operations
-class BackgroundTaskManager {
+final class BackgroundTaskManager {
 
     // MARK: - Properties
 
