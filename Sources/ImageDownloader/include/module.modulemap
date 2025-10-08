@@ -1,6 +1,0 @@
-framework module ImageDownloader {
-    umbrella header "ImageDownloader.h"
-    
-    export *
-    module * { export * }
-}

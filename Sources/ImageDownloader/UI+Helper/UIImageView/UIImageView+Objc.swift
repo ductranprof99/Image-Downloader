@@ -15,7 +15,7 @@ extension UIImageView {
     @objc public func setImageObjC(
         with url: URL,
         placeholder: UIImage?,
-        completion: ((UIImage?, NSError?) -> Void)? = nil
+        completion: @escaping ((UIImage?, NSError?) -> Void)
     ) {
         setImage(
             with: url,
@@ -26,7 +26,7 @@ extension UIImageView {
             transformation: nil,
             onProgress: nil,
             onCompletion: { image, error, _, _ in
-                completion?(image, error as NSError?)
+                completion(image, error as NSError?)
             }
         )
     }
@@ -36,7 +36,7 @@ extension UIImageView {
         with url: URL,
         placeholder: UIImage?,
         priority: ResourcePriority,
-        completion: ((UIImage?, NSError?) -> Void)? = nil
+        completion: @escaping ((UIImage?, NSError?) -> Void)
     ) {
         setImage(
             with: url,
@@ -47,7 +47,28 @@ extension UIImageView {
             transformation: nil,
             onProgress: nil,
             onCompletion: { image, error, _, _ in
-                completion?(image, error as NSError?)
+                completion(image, error as NSError?)
+            }
+        )
+    }
+    
+    @objc public func setImageObjC(
+        with url: URL,
+        placeholder: UIImage?,
+        priority: ResourcePriority,
+        progress: @escaping (CGFloat) -> Void,
+        completion: @escaping ((UIImage?, NSError?) -> Void)
+    ) {
+        setImage(
+            with: url,
+            config: nil,
+            placeholder: placeholder,
+            errorImage: nil,
+            priority: priority,
+            transformation: nil,
+            onProgress: progress,
+            onCompletion: { image, error, _, _ in
+                completion(image, error as NSError?)
             }
         )
     }

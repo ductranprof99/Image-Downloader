@@ -1,8 +1,8 @@
 //
 //  AppDelegate.swift
-//  TestLibUIKit
+//  UIKitExample
 //
-//  Created by ductd on 6/10/25.
+//  Created by ductd on 8/10/25.
 //
 
 import UIKit

@@ -212,10 +212,16 @@ class FeedViewController: UIViewController {
             }
         }
     }
+    
+    @objc func showStats() {
+        Task { @MainActor in
+            await showStatsAleart()
+        }
+    }
 
-    @objc private func showStats() {
-        let highCacheCount = ImageDownloaderManager.shared.cacheSizeHigh()
-        let lowCacheCount = ImageDownloaderManager.shared.cacheSizeLow()
+    private func showStatsAleart() async {
+        let highCacheCount = await ImageDownloaderManager.shared.cacheSizeHigh()
+        let lowCacheCount = await ImageDownloaderManager.shared.cacheSizeLow()
         let storageBytes = ImageDownloaderManager.shared.storageSizeBytes()
         let storageMB = Double(storageBytes) / 1_048_576
 
@@ -237,12 +243,10 @@ class FeedViewController: UIViewController {
 
         alert.addAction(UIAlertAction(title: "Clear Cache", style: .destructive) { _ in
             ImageDownloaderManager.shared.clearAllCache()
-            self.showStats()
         })
 
         alert.addAction(UIAlertAction(title: "Clear Low Priority", style: .default) { _ in
             ImageDownloaderManager.shared.clearLowPriorityCache()
-            self.showStats()
         })
 
         alert.addAction(UIAlertAction(title: "OK", style: .cancel))

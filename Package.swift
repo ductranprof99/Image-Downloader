@@ -23,7 +23,6 @@ let package = Package(
       path: "Sources/ImageDownloader",
       exclude: [],
       sources: nil,
-      publicHeadersPath: "include",
       cSettings: [
         .headerSearchPath("LibraryPublics"),
         .headerSearchPath("UI+Helper")

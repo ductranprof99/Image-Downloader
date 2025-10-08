@@ -7,58 +7,58 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		300F14BB2E94D4EA002CFFAE /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 300F14BA2E94D4EA002CFFAE /* ImageDownloader */; };
+		30249EED2E9643F50057D3E2 /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 30249EEC2E9643F50057D3E2 /* ImageDownloader */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		306B5BA62E93BD9800E2514E /* TestLibUIKit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestLibUIKit.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		30249EC82E9643730057D3E2 /* UIKitExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UIKitExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		306B5BB82E93BD9900E2514E /* Exceptions for "TestLibUIKit" folder in "TestLibUIKit" target */ = {
+		30249EDA2E9643750057D3E2 /* Exceptions for "UIKitExample" folder in "UIKitExample" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 306B5BA52E93BD9800E2514E /* TestLibUIKit */;
+			target = 30249EC72E9643730057D3E2 /* UIKitExample */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		306B5BA82E93BD9800E2514E /* TestLibUIKit */ = {
+		30249ECA2E9643730057D3E2 /* UIKitExample */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				306B5BB82E93BD9900E2514E /* Exceptions for "TestLibUIKit" folder in "TestLibUIKit" target */,
+				30249EDA2E9643750057D3E2 /* Exceptions for "UIKitExample" folder in "UIKitExample" target */,
 			);
-			path = TestLibUIKit;
+			path = UIKitExample;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		306B5BA32E93BD9800E2514E /* Frameworks */ = {
+		30249EC52E9643730057D3E2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				300F14BB2E94D4EA002CFFAE /* ImageDownloader in Frameworks */,
+				30249EED2E9643F50057D3E2 /* ImageDownloader in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		306B5B9D2E93BD9800E2514E = {
+		30249EBF2E9643730057D3E2 = {
 			isa = PBXGroup;
 			children = (
-				306B5BA82E93BD9800E2514E /* TestLibUIKit */,
-				306B5BA72E93BD9800E2514E /* Products */,
+				30249ECA2E9643730057D3E2 /* UIKitExample */,
+				30249EC92E9643730057D3E2 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		306B5BA72E93BD9800E2514E /* Products */ = {
+		30249EC92E9643730057D3E2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				306B5BA62E93BD9800E2514E /* TestLibUIKit.app */,
+				30249EC82E9643730057D3E2 /* UIKitExample.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -66,70 +66,68 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		306B5BA52E93BD9800E2514E /* TestLibUIKit */ = {
+		30249EC72E9643730057D3E2 /* UIKitExample */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 306B5BB92E93BD9900E2514E /* Build configuration list for PBXNativeTarget "TestLibUIKit" */;
+			buildConfigurationList = 30249EDB2E9643750057D3E2 /* Build configuration list for PBXNativeTarget "UIKitExample" */;
 			buildPhases = (
-				306B5BA22E93BD9800E2514E /* Sources */,
-				306B5BA32E93BD9800E2514E /* Frameworks */,
-				306B5BA42E93BD9800E2514E /* Resources */,
+				30249EC42E9643730057D3E2 /* Sources */,
+				30249EC52E9643730057D3E2 /* Frameworks */,
+				30249EC62E9643730057D3E2 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				306B5BA82E93BD9800E2514E /* TestLibUIKit */,
+				30249ECA2E9643730057D3E2 /* UIKitExample */,
 			);
-			name = TestLibUIKit;
+			name = UIKitExample;
 			packageProductDependencies = (
-				305935992E93D86400E04E91 /* ImageDownloader */,
-				30A36CE82E94CB7F0022259F /* ImageDownloader */,
-				300F14BA2E94D4EA002CFFAE /* ImageDownloader */,
+				30249EEC2E9643F50057D3E2 /* ImageDownloader */,
 			);
-			productName = TestLibUIKit;
-			productReference = 306B5BA62E93BD9800E2514E /* TestLibUIKit.app */;
+			productName = UIKitExample;
+			productReference = 30249EC82E9643730057D3E2 /* UIKitExample.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		306B5B9E2E93BD9800E2514E /* Project object */ = {
+		30249EC02E9643730057D3E2 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1640;
 				TargetAttributes = {
-					306B5BA52E93BD9800E2514E = {
+					30249EC72E9643730057D3E2 = {
 						CreatedOnToolsVersion = 16.4;
 					};
 				};
 			};
-			buildConfigurationList = 306B5BA12E93BD9800E2514E /* Build configuration list for PBXProject "TestLibUIKit" */;
+			buildConfigurationList = 30249EC32E9643730057D3E2 /* Build configuration list for PBXProject "UIKitExample" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 306B5B9D2E93BD9800E2514E;
+			mainGroup = 30249EBF2E9643730057D3E2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				300F14BC2E94D500002CFFAE /* XCLocalSwiftPackageReference "../../../../Image-Downloader" */,
+				30249EEB2E9643F50057D3E2 /* XCLocalSwiftPackageReference "../../../Image-Downloader" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 306B5BA72E93BD9800E2514E /* Products */;
+			productRefGroup = 30249EC92E9643730057D3E2 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				306B5BA52E93BD9800E2514E /* TestLibUIKit */,
+				30249EC72E9643730057D3E2 /* UIKitExample */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		306B5BA42E93BD9800E2514E /* Resources */ = {
+		30249EC62E9643730057D3E2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -139,7 +137,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		306B5BA22E93BD9800E2514E /* Sources */ = {
+		30249EC42E9643730057D3E2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -149,7 +147,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		306B5BBA2E93BD9900E2514E /* Debug */ = {
+		30249EDC2E9643750057D3E2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -157,7 +155,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TestLibUIKit/Info.plist;
+				INFOPLIST_FILE = UIKitExample/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -168,7 +166,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = img.dld.test.TestLibUIKit;
+				PRODUCT_BUNDLE_IDENTIFIER = img.dld.test.uikit.UIKitExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -176,7 +174,7 @@
 			};
 			name = Debug;
 		};
-		306B5BBB2E93BD9900E2514E /* Release */ = {
+		30249EDD2E9643750057D3E2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -184,7 +182,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = TestLibUIKit/Info.plist;
+				INFOPLIST_FILE = UIKitExample/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -195,7 +193,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = img.dld.test.TestLibUIKit;
+				PRODUCT_BUNDLE_IDENTIFIER = img.dld.test.uikit.UIKitExample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -203,7 +201,7 @@
 			};
 			name = Release;
 		};
-		306B5BBC2E93BD9900E2514E /* Debug */ = {
+		30249EDE2E9643750057D3E2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -266,7 +264,7 @@
 			};
 			name = Debug;
 		};
-		306B5BBD2E93BD9900E2514E /* Release */ = {
+		30249EDF2E9643750057D3E2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -325,20 +323,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		306B5BA12E93BD9800E2514E /* Build configuration list for PBXProject "TestLibUIKit" */ = {
+		30249EC32E9643730057D3E2 /* Build configuration list for PBXProject "UIKitExample" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				306B5BBC2E93BD9900E2514E /* Debug */,
-				306B5BBD2E93BD9900E2514E /* Release */,
+				30249EDE2E9643750057D3E2 /* Debug */,
+				30249EDF2E9643750057D3E2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		306B5BB92E93BD9900E2514E /* Build configuration list for PBXNativeTarget "TestLibUIKit" */ = {
+		30249EDB2E9643750057D3E2 /* Build configuration list for PBXNativeTarget "UIKitExample" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				306B5BBA2E93BD9900E2514E /* Debug */,
-				306B5BBB2E93BD9900E2514E /* Release */,
+				30249EDC2E9643750057D3E2 /* Debug */,
+				30249EDD2E9643750057D3E2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -346,26 +344,18 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		300F14BC2E94D500002CFFAE /* XCLocalSwiftPackageReference "../../../../Image-Downloader" */ = {
+		30249EEB2E9643F50057D3E2 /* XCLocalSwiftPackageReference "../../../Image-Downloader" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../../Image-Downloader";
+			relativePath = "../../../Image-Downloader";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		300F14BA2E94D4EA002CFFAE /* ImageDownloader */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ImageDownloader;
-		};
-		305935992E93D86400E04E91 /* ImageDownloader */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ImageDownloader;
-		};
-		30A36CE82E94CB7F0022259F /* ImageDownloader */ = {
+		30249EEC2E9643F50057D3E2 /* ImageDownloader */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ImageDownloader;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 306B5B9E2E93BD9800E2514E /* Project object */;
+	rootObject = 30249EC02E9643730057D3E2 /* Project object */;
 }
