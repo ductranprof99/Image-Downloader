@@ -13,21 +13,17 @@ extension UIImageView {
 
     /// Objective-C compatible method to set image from URL
     @objc public func setImageObjC(
-        with url: URL,
-        placeholder: UIImage?,
-        completion: ((UIImage?, NSError?) -> Void)? = nil
+        with url: URL
     ) {
         setImage(
             with: url,
             config: nil,
-            placeholder: placeholder,
+            placeholder: nil,
             errorImage: nil,
             priority: .low,
             transformation: nil,
             onProgress: nil,
-            onCompletion: { image, error, _, _ in
-                completion?(image, error as NSError?)
-            }
+            onCompletion: nil
         )
     }
 
@@ -54,16 +50,18 @@ extension UIImageView {
     
     @objc public func setImageObjC(
         with url: URL,
-        placeholder: UIImage?,
+        config: IDConfiguration? = nil,
+        placeholderImage: UIImage? = nil,
+        errorImage: UIImage? = nil,
         priority: ResourcePriority,
         progress: ((CGFloat) -> Void)? = nil,
         completion: ((UIImage?, NSError?) -> Void)? = nil
     ) {
         setImage(
             with: url,
-            config: nil,
-            placeholder: placeholder,
-            errorImage: nil,
+            config: config,
+            placeholder: placeholderImage,
+            errorImage: errorImage,
             priority: priority,
             transformation: nil,
             onProgress: {
