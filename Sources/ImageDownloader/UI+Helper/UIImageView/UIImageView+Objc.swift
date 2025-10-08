@@ -15,7 +15,7 @@ extension UIImageView {
     @objc public func setImageObjC(
         with url: URL,
         placeholder: UIImage?,
-        completion: @escaping ((UIImage?, NSError?) -> Void)
+        completion: ((UIImage?, NSError?) -> Void)? = nil
     ) {
         setImage(
             with: url,
@@ -26,7 +26,7 @@ extension UIImageView {
             transformation: nil,
             onProgress: nil,
             onCompletion: { image, error, _, _ in
-                completion(image, error as NSError?)
+                completion?(image, error as NSError?)
             }
         )
     }
@@ -36,7 +36,7 @@ extension UIImageView {
         with url: URL,
         placeholder: UIImage?,
         priority: ResourcePriority,
-        completion: @escaping ((UIImage?, NSError?) -> Void)
+        completion: ((UIImage?, NSError?) -> Void)? = nil
     ) {
         setImage(
             with: url,
@@ -47,7 +47,7 @@ extension UIImageView {
             transformation: nil,
             onProgress: nil,
             onCompletion: { image, error, _, _ in
-                completion(image, error as NSError?)
+                completion?(image, error as NSError?)
             }
         )
     }
@@ -56,8 +56,8 @@ extension UIImageView {
         with url: URL,
         placeholder: UIImage?,
         priority: ResourcePriority,
-        progress: @escaping (CGFloat) -> Void,
-        completion: @escaping ((UIImage?, NSError?) -> Void)
+        progress: ((CGFloat) -> Void)? = nil,
+        completion: ((UIImage?, NSError?) -> Void)? = nil
     ) {
         setImage(
             with: url,
@@ -66,9 +66,11 @@ extension UIImageView {
             errorImage: nil,
             priority: priority,
             transformation: nil,
-            onProgress: progress,
+            onProgress: {
+                progress?($0)
+            },
             onCompletion: { image, error, _, _ in
-                completion(image, error as NSError?)
+                completion?(image, error as NSError?)
             }
         )
     }
