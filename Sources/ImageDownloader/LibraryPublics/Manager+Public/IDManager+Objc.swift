@@ -45,7 +45,12 @@ extension ImageDownloaderManager {
 
             case .wait:
                 if let completion = mainThreadCompletion {
-                    registerCaller(url: url, caller: caller, completion: completion, progress: progress)
+                    registerCaller(
+                        url: url,
+                        caller: caller,
+                        completion: completion,
+                        progress: progress
+                    )
                 }
                 return
 

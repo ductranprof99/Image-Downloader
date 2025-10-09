@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		309AF6AA2E97B29A00391A23 /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 309AF6A92E97B29A00391A23 /* ImageDownloader */; };
+		309AF6B32E97B73400391A23 /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 309AF6B22E97B73400391A23 /* ImageDownloader */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,7 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				309AF6AA2E97B29A00391A23 /* ImageDownloader in Frameworks */,
+				309AF6B32E97B73400391A23 /* ImageDownloader in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -70,7 +70,7 @@
 			);
 			name = Storage;
 			packageProductDependencies = (
-				309AF6A92E97B29A00391A23 /* ImageDownloader */,
+				309AF6B22E97B73400391A23 /* ImageDownloader */,
 			);
 			productName = Storage;
 			productReference = 309AF65A2E97A7EA00391A23 /* Storage.app */;
@@ -101,6 +101,7 @@
 			mainGroup = 309AF6512E97A7EA00391A23;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				309AF6B12E97B73400391A23 /* XCLocalSwiftPackageReference "../../../Image-Downloader" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 309AF65B2E97A7EA00391A23 /* Products */;
@@ -329,8 +330,15 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		309AF6B12E97B73400391A23 /* XCLocalSwiftPackageReference "../../../Image-Downloader" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../Image-Downloader";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
-		309AF6A92E97B29A00391A23 /* ImageDownloader */ = {
+		309AF6B22E97B73400391A23 /* ImageDownloader */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ImageDownloader;
 		};

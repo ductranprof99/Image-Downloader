@@ -54,30 +54,29 @@ struct StorageImageView: View {
     }
 
     private func loadImage() async {
-        do {
-            let result = try await ImageDownloaderManager.shared.requestImageAsync(
-                at: url,
-                updateLatency: .high,
-                downloadPriority: mode.downloadPriority
-            )
-            let bytes = ImageDownloaderManager.shared.storageSizeBytes()
-            let mb = Double(bytes) / 1_048_576
-            downloadTask = await ImageDownloaderManager.shared.activeDownloadsCountAsync()
-            totalBytesCount = mb
-            storageItemImageCount = ImageDownloaderManager.shared.storedImageCount()
-            await MainActor.run {
-                switch mode {
-                case .noStorage:
-                    image = result.image
-                case .withStorage:
-                    image = result.image
+        ImageDownloaderManager.shared.requestImage(
+            at:url,
+            updateLatency: .high,
+            downloadPriority: mode.downloadPriority,
+            completion: { (image, err, isFromCache, isFromStorage) in
+                let bytes = ImageDownloaderManager.shared.storageSizeBytes()
+                let mb = Double(bytes) / 1_048_576
+                Task { @MainActor in
+                    downloadTask = await ImageDownloaderManager.shared.activeDownloadsCountAsync()
+                    totalBytesCount = mb
+                    storageItemImageCount = ImageDownloaderManager.shared.storedImageCount()
+                    self.image = image
+                    self.isLoading = false
+//                        await MainActor.run {
+//                            switch mode {
+//                            case .noStorage:
+//
+//                            case .withStorage:
+//                            }
+//
+//                        }
                 }
-                self.isLoading = false
             }
-        } catch {
-            await MainActor.run {
-                self.isLoading = false
-            }
-        }
+        )
     }
 }
