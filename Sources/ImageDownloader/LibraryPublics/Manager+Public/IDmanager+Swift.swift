@@ -8,12 +8,6 @@
 import Foundation
 import UIKit
 
-/// Progress update for async image loading for async await
-public enum ImageLoadingProgress {
-    case loading(CGFloat, CGFloat, CGFloat)
-    case completed(ImageResult)
-}
-
 extension ImageDownloaderManager {
 
     // MARK: - Pure Async/Await API (No DispatchQueue Mixing)
@@ -46,22 +40,31 @@ extension ImageDownloaderManager {
             break
         }
 
-        // Download from network (async)
-        // TODO: Download, then save to somewhere
-    }
-
-    /// Request image with progress updates using AsyncStream
-    /// - Parameters:
-    ///   - url: The URL of the image to download
-    ///   - priority: The priority level for the download task
-    ///   - shouldSaveToStorage: Whether to save to disk storage
-    /// - Returns: AsyncThrowingStream with progress updates and final result
-    private func downloadImageAsync(
-        at: URL,
-        downloadPriority: DownloadPriority
-    ) -> AsyncThrowingStream<ImageLoadingProgress, Error> {
-        return AsyncThrowingStream { continuation in
-           // TODO
+        // Cache miss - need to download
+        return try await withCheckedThrowingContinuation { continuation in
+            self.requestImage(
+                at: url,
+                updateLatency: updateLatency,
+                downloadPriority: downloadPriority,
+                progress: nil,
+                completion: { image, error, fromCache, fromStorage in
+                    if let image = image {
+                        continuation.resume(returning: ImageResult(
+                            image: image,
+                            url: url,
+                            fromCache: fromCache,
+                            fromStorage: fromStorage
+                        ))
+                    } else if let error = error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume(throwing: ImageDownloaderError.unknown(
+                            NSError(domain: "ImageDownloader", code: -1, userInfo: nil)
+                        ))
+                    }
+                }
+            )
         }
     }
+
 }

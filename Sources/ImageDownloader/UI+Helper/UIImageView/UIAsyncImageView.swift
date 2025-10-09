@@ -79,7 +79,47 @@ open class UIAsyncImageView: UIImageView {
     ///   - placeholder: Placeholder image to show while loading
     ///   - errorImage: Image to show on error
     open func loadImage(from url: URL, placeholder: UIImage? = nil, errorImage: UIImage? = nil) {
-        // TODO
+        // Cancel previous request
+        cancelLoading()
+
+        // Update state
+        imageURL = url
+        isLoading = true
+
+        // Set placeholder
+        if let placeholder = placeholder ?? placeholderImage {
+            self.image = placeholder
+        }
+
+        // Update errorImage if provided
+        if let errorImage = errorImage {
+            self.errorImage = errorImage
+        }
+
+        // Get manager for config
+        let manager = ImageDownloaderManager.instance(for: config)
+
+        // Request image
+        manager.requestImage(
+            at: url,
+            caller: self,
+            progress: { [weak self] prog, _, _ in
+                self?.onProgress?(prog)
+            },
+            completion: { [weak self] image, error, fromCache, fromStorage in
+                guard let self = self else { return }
+
+                self.isLoading = false
+
+                if let image = image {
+                    self.image = image
+                } else if let errorImage = self.errorImage {
+                    self.image = errorImage
+                }
+
+                self.onCompletion?(image, error, fromCache, fromStorage)
+            }
+        )
     }
 
     /// Cancel current image loading request

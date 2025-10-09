@@ -22,7 +22,13 @@ extension UIImage {
         manager: ImageDownloaderManager? = nil,
         priority: DownloadPriority = .low
     ) async throws -> UIImage {
-        // TODO
+        guard let url = URL(string: urlString) else {
+            throw ImageDownloaderError.invalidURL
+        }
+
+        let manager = manager ?? (config == nil ? ImageDownloaderManager.shared : ImageDownloaderManager.instance(for: config))
+        let result = try await manager.requestImageAsync(at: url, downloadPriority: priority)
+        return result.image
     }
 
 
@@ -42,6 +48,28 @@ extension UIImage {
         progress: ((CGFloat, CGFloat, CGFloat) -> Void)? = nil,
         completion: @escaping (Result<UIImage, Error>) -> Void
     ) {
-        // TODO
+        guard let url = URL(string: urlString) else {
+            completion(.failure(ImageDownloaderError.invalidURL))
+            return
+        }
+
+        let manager = manager ?? (config == nil ? ImageDownloaderManager.shared : ImageDownloaderManager.instance(for: config))
+
+        manager.requestImage(
+            at: url,
+            downloadPriority: downloadPriority,
+            progress: progress,
+            completion: { image, error, _, _ in
+                if let image = image {
+                    completion(.success(image))
+                } else if let error = error {
+                    completion(.failure(error))
+                } else {
+                    completion(.failure(ImageDownloaderError.unknown(
+                        NSError(domain: "ImageDownloader", code: -1, userInfo: nil)
+                    )))
+                }
+            }
+        )
     }
 }

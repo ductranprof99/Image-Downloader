@@ -140,9 +140,33 @@ extension UIImageView {
             self.image = placeholder
         }
 
-        // Get manager instance for this config
-
         // Request image
-        // TODO
+        downloadManager?.requestImage(
+            at: url,
+            caller: self,
+            downloadPriority: priority,
+            progress: onProgress,
+            completion: { [weak self] image, error, fromCache, fromStorage in
+                guard let self = self else { return }
+
+                // Apply transformation if provided
+                let finalImage: UIImage?
+                if let image = image, let transformation = transformation {
+                    finalImage = transformation.transform(image)
+                } else {
+                    finalImage = image
+                }
+
+                // Update UI
+                if let finalImage = finalImage {
+                    self.image = finalImage
+                } else if let errorImage = errorImage {
+                    self.image = errorImage
+                }
+
+                // Call completion
+                onCompletion?(finalImage, error, fromCache, fromStorage)
+            }
+        )
     }
 }
