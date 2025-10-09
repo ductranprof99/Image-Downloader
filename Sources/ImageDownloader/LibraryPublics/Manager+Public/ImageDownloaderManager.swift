@@ -44,11 +44,17 @@ public class ImageDownloaderManager: NSObject {
     var storageAgent: StorageAgent
     var networkAgent: NetworkAgent
     var configuration: IDConfiguration
-    
+
     let managerQueue = DispatchQueue(label: "com.imagedownloader.manager.queue")
     /// Manager instances cache for custom configurations
     private static var instances: [String: ImageDownloaderManager] = [:]
     private static let instancesLock = NSLock()
+
+    // MARK: - Caller Registry
+    /// Stores waiting callers and their completion blocks
+    /// Key: URL string, Value: Array of (weak caller, completion, progress)
+    private var callerRegistry: [String: [(caller: WeakBox<AnyObject>, completion: ImageCompletionBlock, progress: ImageProgressBlock?)]] = [:]
+    private let registryLock = NSLock()
     
 
     // MARK: - Initialization
@@ -111,11 +117,76 @@ extension ImageDownloaderManager {
         }
     }
     
-    func registerCaller(url: URL, caller: AnyObject?) {
-        
+    /// Register a caller waiting for an image
+    /// - Parameters:
+    ///   - url: The URL being requested
+    ///   - caller: The object making the request (stored weakly)
+    ///   - completion: Completion block to call when image is ready
+    ///   - progress: Optional progress block
+    func registerCaller(
+        url: URL,
+        caller: AnyObject?,
+        completion: @escaping ImageCompletionBlock,
+        progress: ImageProgressBlock?
+    ) {
+        guard let caller = caller else { return }
+
+        let urlKey = url.absoluteString
+
+        registryLock.lock()
+        defer { registryLock.unlock() }
+
+        // Add to registry
+        let entry = (caller: WeakBox(caller), completion: completion, progress: progress)
+        callerRegistry[urlKey, default: []].append(entry)
     }
-    
-    func notifyCaller(caller: AnyObject?) {
-        
+
+    /// Notify all waiting callers for a URL
+    /// - Parameters:
+    ///   - url: The URL that finished loading
+    ///   - image: The loaded image (nil if error)
+    ///   - error: The error (nil if success)
+    ///   - fromCache: Whether image came from cache
+    ///   - fromStorage: Whether image came from storage
+    func notifyCallers(
+        url: URL,
+        image: UIImage?,
+        error: Error?,
+        fromCache: Bool,
+        fromStorage: Bool
+    ) {
+        let urlKey = url.absoluteString
+
+        registryLock.lock()
+        let waiters = callerRegistry[urlKey] ?? []
+        callerRegistry.removeValue(forKey: urlKey)
+        registryLock.unlock()
+
+        // Notify all waiters (only if caller still alive)
+        for waiter in waiters {
+            // Check if caller is still alive
+            if waiter.caller.value != nil {
+                // Call on main thread
+                DispatchQueue.main.async {
+                    waiter.completion(image, error, fromCache, fromStorage)
+                }
+            }
+        }
+    }
+
+    /// Clean up dead callers periodically
+    func cleanupDeadCallers() {
+        registryLock.lock()
+        defer { registryLock.unlock() }
+
+        // Remove entries where caller is nil
+        for (urlKey, waiters) in callerRegistry {
+            let aliveWaiters = waiters.filter { $0.caller.value != nil }
+            if aliveWaiters.isEmpty {
+                callerRegistry.removeValue(forKey: urlKey)
+            } else {
+                callerRegistry[urlKey] = aliveWaiters
+            }
+        }
     }
 }

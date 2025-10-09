@@ -19,7 +19,7 @@ extension UIImage {
     ///   - priority: Download priority (default: .normal)
     ///   - progress: Progress callback (0.0 to 1.0)
     ///   - completion: Completion callback with image or error
-    static func loadObjc(
+    @objc static func loadObjc(
         from url: URL,
         config: IDConfiguration? = nil,
         manager: ImageDownloaderManager? = nil,

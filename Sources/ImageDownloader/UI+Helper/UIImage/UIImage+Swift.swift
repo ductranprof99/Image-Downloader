@@ -42,6 +42,6 @@ extension UIImage {
         progress: ((CGFloat, CGFloat, CGFloat) -> Void)? = nil,
         completion: @escaping (Result<UIImage, Error>) -> Void
     ) {
-        
+        // TODO
     }
 }

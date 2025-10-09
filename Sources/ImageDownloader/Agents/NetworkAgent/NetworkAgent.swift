@@ -8,10 +8,11 @@
 //  Fully ObjC compatible with callback-based API
 //
 
-import Foundation
+import UIKit
 
 /// Completion handler for downloads
-typealias DownloadCompletionHandler = (Data?, Error?) -> Void
+typealias DownloadCompletionHandler = (UIImage?, Error?) -> Void
+typealias InternalDownloadCompletionHandler = (Data?, Error?) -> Void
 typealias DownloadProgressHandler = (DownloadProgress) -> Void
 
 /// NetworkAgent handles data downloads with automatic concurrency limiting and request deduplication
@@ -88,8 +89,18 @@ final class NetworkAgent: NSObject {
 
             // REQUEST DEDUPLICATION: Check if already downloading
             if let existingTask = self.activeDownloads[urlKey] {
-                // Join existing download
-                existingTask.addWaiter(completion: completion, progress: progress)
+                // Join existing download - decode will happen when data arrives
+                existingTask.addWaiter(
+                    completion: { data, error in
+                        // Decode image
+                        guard let imageData = data,
+                              let image = ImageDecoder.decodeImage(from: imageData) else {
+                            completion(nil, error)
+                            return
+                        }
+                        completion(image, error)
+                    },
+                    progress: progress)
                 return
             }
 
@@ -122,7 +133,7 @@ final class NetworkAgent: NSObject {
     }
 
     /// Cancel download for specific URL (ObjC compatible)
-    @objc public func cancelDownload(for url: URL) {
+    func cancelDownload(for url: URL) {
         isolationQueue.async { [weak self] in
             guard let self = self else { return }
 
@@ -155,7 +166,7 @@ final class NetworkAgent: NSObject {
 
     // MARK: - Statistics (ObjC Compatible)
 
-    @objc public var activeDownloadCount: Int {
+    var activeDownloadCount: Int {
         var count = 0
         isolationQueue.sync {
             count = activeDownloads.count
@@ -163,7 +174,7 @@ final class NetworkAgent: NSObject {
         return count
     }
 
-    @objc public var pendingDownloadCount: Int {
+    var pendingDownloadCount: Int {
         var count = 0
         isolationQueue.sync {
             count = pendingQueue.count
@@ -181,16 +192,26 @@ final class NetworkAgent: NSObject {
         completion: @escaping DownloadCompletionHandler
     ) {
         let urlKey = url.absoluteString
-
+        
         // Create download task
         let downloadTask = DownloadTask(url: url, priority: priority)
-        downloadTask.addWaiter(completion: completion, progress: progress)
+        downloadTask.addWaiter(
+            completion: { data, error in
+                // Decode image
+                guard let imageData = data,
+                      let image = ImageDecoder.decodeImage(from: imageData) else {
+                    completion(nil, error)
+                    return
+                }
+                completion(image, error)
+            },
+            progress: progress)
         activeDownloads[urlKey] = downloadTask
-
+        
         // Perform download on background queue
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
-
+            
             self.performDownload(
                 url: url,
                 retryAttempt: 0,
@@ -233,7 +254,7 @@ final class NetworkAgent: NSObject {
         url: URL,
         retryAttempt: Int,
         task: DownloadTask,
-        completion: @escaping DownloadCompletionHandler
+        completion: @escaping InternalDownloadCompletionHandler
     ) {
         // Build request
         var request = URLRequest(url: url)
@@ -366,7 +387,7 @@ final class NetworkAgent: NSObject {
 
     // MARK: - Cleanup
 
-    @objc public func cleanup() {
+    func cleanup() {
         isolationQueue.async { [weak self] in
             guard let self = self else { return }
 

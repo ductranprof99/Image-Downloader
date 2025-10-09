@@ -38,24 +38,7 @@ public class ImageLoader: ObservableObject {
 
         // Use completion-based API for progress tracking
         let manager = ImageDownloaderManager.instance(for: config)
-
-//        manager.requestImage(
-//            at: url,
-//            priority: priority,
-//            progress: { [weak self] progressValue in
-//                DispatchQueue.main.async {
-//                    self?.progress = progressValue
-//                }
-//            },
-//            completion: { [weak self] image, error, _, _ in
-//                DispatchQueue.main.async {
-//                    self?.image = image
-//                    self?.error = error
-//                    self?.isLoading = false
-//                    self?.progress = 1.0
-//                }
-//            }
-//        )
+        
     }
 
     public func cancel() {

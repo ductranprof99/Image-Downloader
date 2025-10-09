@@ -15,7 +15,8 @@ internal final class DownloadTask {
     var urlSessionTask: URLSessionDataTask?
 
     private let lock = NSLock()
-    private var waiters: [(completion: DownloadCompletionHandler, progress: DownloadProgressHandler?)] = []
+    private var waiters: [(completion: InternalDownloadCompletionHandler,
+                           progress: DownloadProgressHandler?)] = []
 
     init(url: URL, priority: DownloadPriority) {
         self.url = url
@@ -23,7 +24,7 @@ internal final class DownloadTask {
         self.startTime = Date()
     }
 
-    func addWaiter(completion: @escaping DownloadCompletionHandler, progress: DownloadProgressHandler?) {
+    func addWaiter(completion: @escaping InternalDownloadCompletionHandler, progress: DownloadProgressHandler?) {
         lock.lock()
         waiters.append((completion, progress))
         lock.unlock()
