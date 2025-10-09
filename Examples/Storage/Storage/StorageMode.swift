@@ -33,6 +33,15 @@ enum StorageMode: Int, CaseIterable {
         }
     }
     
+    var message: String {
+        switch self {
+        case .noStorage:
+            "Images loaded from disk storage only. Many"
+        case .withStorage:
+            "Images loaded from disk storage only. No network requests."
+        }
+    }
+    
     var downloadPriority: DownloadPriority {
         return .high
     }

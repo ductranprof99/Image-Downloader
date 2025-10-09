@@ -104,17 +104,17 @@ public struct AsyncImageView: View {
         loadingTask = Task {
             do {
                 let manager = ImageDownloaderManager.instance(for: config)
-                
-                let result = try await manager.requestImageAsync(
-                    at: url,
-                    updateLatency: updateLatency,
-                    downloadPriority: downloadPriority
-                )
+//                
+//                let result = try await manager.requestImageAsync(
+//                    at: url,
+//                    updateLatency: updateLatency,
+//                    downloadPriority: downloadPriority
+//                )
                 
                 // Check if task was cancelled
                 guard !Task.isCancelled else { return }
                 
-                loadedImage = result.image
+                loadedImage = nil // result.image
                 loadProgress = 1.0
                 isLoading = false
                 

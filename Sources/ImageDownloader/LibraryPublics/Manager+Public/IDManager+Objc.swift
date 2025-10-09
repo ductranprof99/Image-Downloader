@@ -137,8 +137,9 @@ extension ImageDownloaderManager {
             guard let self = self else { return }
 
             // Save to storage
-            _ = self.storageAgent.saveImage(image, for: url)
-
+            if configuration.shouldSaveToStorage {
+                _ = self.storageAgent.saveImage(image, for: url)
+            }
             // Update cache and notify
             Task {
                 await self.cacheAgent.setImage(image, for: url, isHighLatency: latency.isHighLatency)

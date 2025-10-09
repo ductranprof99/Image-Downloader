@@ -51,20 +51,27 @@ struct StorageImageView: View {
         .task {
             await loadImage()
         }
-    }
-
-    private func loadImage() async {
-        ImageDownloaderManager.shared.requestImage(
-            at:url,
-            updateLatency: .high,
-            downloadPriority: mode.downloadPriority,
-            completion: { (image, err, isFromCache, isFromStorage) in
+        .onChange(of: isLoading) {
+            if !$0 {
                 let bytes = ImageDownloaderManager.shared.storageSizeBytes()
                 let mb = Double(bytes) / 1_048_576
                 Task { @MainActor in
                     downloadTask = await ImageDownloaderManager.shared.activeDownloadsCountAsync()
                     totalBytesCount = mb
                     storageItemImageCount = ImageDownloaderManager.shared.storedImageCount()
+                }
+            }
+        }
+    }
+
+    private func loadImage() async {
+        
+        ImageDownloaderManager.shared.requestImage(
+            at:url,
+            updateLatency: .high,
+            downloadPriority: mode.downloadPriority,
+            completion: { (image, err, isFromCache, isFromStorage) in
+                Task { @MainActor in
                     self.image = image
                     self.isLoading = false
 //                        await MainActor.run {

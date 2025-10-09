@@ -33,7 +33,7 @@ struct StorageOnlyDemoView: View {
                         .font(.title2)
                         .fontWeight(.bold)
 
-                    Text("Images loaded from disk storage only. No network requests.")
+                    Text(viewModel.storageMode.message)
                         .font(.caption)
                         .foregroundColor(.secondary)
 
@@ -45,7 +45,7 @@ struct StorageOnlyDemoView: View {
                             Text("Stored Images")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text("\(viewModel.storedImageCount)")
+                            Text(viewModel.storedImageCountString)
                                 .font(.title3)
                                 .fontWeight(.semibold)
                         }
@@ -56,7 +56,7 @@ struct StorageOnlyDemoView: View {
                             Text("Storage Size")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(String(format: "%.2f MB", viewModel.totalBytesCount))
+                            Text(viewModel.totalBytesCountString)
                                 .font(.title3)
                                 .fontWeight(.semibold)
                         }
@@ -80,6 +80,8 @@ struct StorageOnlyDemoView: View {
                             )
                         }
                     }
+                    // Changing this ID after cache clear forces full subtree rebuild
+                    .id(viewModel.refreshKey)
                     .padding()
                 }
 
@@ -110,6 +112,15 @@ struct StorageOnlyDemoView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
+                    
+                    Button(action: {
+                        viewModel.clearTempCache()
+                    }) {
+                        Label("Clear Temp Cache", systemImage: "memorychip")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.blue)
 
                     Button(action: {
                         viewModel.clearStorage()

@@ -21,14 +21,14 @@ extension UIImage {
         config: IDConfiguration? = nil,
         manager: ImageDownloaderManager? = nil,
         priority: DownloadPriority = .low
-    ) async throws -> UIImage {
+    ) async throws -> UIImage? {
         guard let url = URL(string: urlString) else {
             throw ImageDownloaderError.invalidURL
         }
 
         let manager = manager ?? (config == nil ? ImageDownloaderManager.shared : ImageDownloaderManager.instance(for: config))
-        let result = try await manager.requestImageAsync(at: url, downloadPriority: priority)
-        return result.image
+//        let result = try await manager.requestImageAsync(at: url, downloadPriority: priority)
+        return nil // result.image
     }
 
 
