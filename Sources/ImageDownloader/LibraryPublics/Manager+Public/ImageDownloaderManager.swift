@@ -55,33 +55,41 @@ public class ImageDownloaderManager: NSObject {
     /// Key: URL string, Value: Array of (weak caller, completion, progress)
     private var callerRegistry: [String: [(caller: WeakBox<AnyObject>, completion: ImageCompletionBlock, progress: ImageProgressBlock?)]] = [:]
     private let registryLock = NSLock()
-    
+    private var cleanupTimer: Timer?
 
     // MARK: - Initialization
     /// Private initializer for singleton
     private override init() {
-        // Default configuration
         self.configuration = .default
         let (networkConfig, cacheConfig, storageConfig) = configuration.toInternalConfigs()
-        
-        // Update agents with new configuration
+
         cacheAgent = CacheAgent(config: cacheConfig)
         storageAgent = StorageAgent(config: storageConfig)
         networkAgent = NetworkAgent(config: networkConfig)
         super.init()
+        startCleanupTimer()
     }
     
     /// Internal initializer with injectable protocol-based configuration
     init(config: IDConfiguration) {
-        // Convert protocol config to IDConfiguration
         self.configuration = config
         let (networkConfig, cacheConfig, storageConfig) = config.toInternalConfigs()
 
-        // Initialize agents with protocol config
         cacheAgent = CacheAgent(config: cacheConfig)
         storageAgent = StorageAgent(config: storageConfig)
         networkAgent = NetworkAgent(config: networkConfig)
         super.init()
+        startCleanupTimer()
+    }
+
+    deinit {
+        cleanupTimer?.invalidate()
+    }
+
+    private func startCleanupTimer() {
+        cleanupTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            self?.cleanupDeadCallers()
+        }
     }
 }
 

@@ -15,6 +15,13 @@ public typealias ImageProgressBlock = (_ progress: CGFloat, _ speed: CGFloat, _ 
 // MARK: - ObjectiveC Compatinble
 extension ImageDownloaderManager {
     /// Request an image resource with full control over priority, storage, and callbacks
+    ///
+    /// IMPORTANT: To prevent retain cycles, use [weak self] in completion blocks:
+    /// ```
+    /// manager.requestImage(at: url, caller: self) { [weak self] image, error, _, _ in
+    ///     self?.imageView.image = image
+    /// }
+    /// ```
     @objc public func requestImage(
         at url: URL,
         caller: AnyObject? = nil,
@@ -31,29 +38,30 @@ extension ImageDownloaderManager {
         }
 
         Task {
-            // Step 1: Check cache
             let cacheResult = await self.cacheAgent.image(for: url)
             switch cacheResult {
             case .hit(let image):
-                // Cache hit - return immediately
                 mainThreadCompletion?(image, nil, true, false)
 
             case .wait:
-                // Another request is already downloading - register as waiter
                 if let completion = mainThreadCompletion {
                     registerCaller(url: url, caller: caller, completion: completion, progress: progress)
                 }
                 return
 
             case .miss:
-                // Cache miss - download from network
-                downloadFromNetworkThenUpdate(
-                    at: url,
-                    downloadPriority: downloadPriority,
-                    latency: latency,
-                    progress: progress,
-                    completion: mainThreadCompletion
-                )
+                if let storageImage = self.storageAgent.image(for: url) {
+                    await self.cacheAgent.setImage(storageImage, for: url, isHighLatency: latency.isHighLatency)
+                    mainThreadCompletion?(storageImage, nil, false, true)
+                } else {
+                    downloadFromNetworkThenUpdate(
+                        at: url,
+                        downloadPriority: downloadPriority,
+                        latency: latency,
+                        progress: progress,
+                        completion: mainThreadCompletion
+                    )
+                }
             }
         }
     }

@@ -240,7 +240,12 @@ final class NetworkAgent: NSObject {
 
         let pending = pendingQueue.removeFirst()
 
-        // Start download
+        if pending.isExpired {
+            pending.completion(nil, ImageDownloaderError.timeout)
+            processNextPendingUnsafe()
+            return
+        }
+
         startDownloadUnsafe(
             url: pending.url,
             priority: pending.priority,
@@ -343,10 +348,10 @@ final class NetworkAgent: NSObject {
                 speed: avgSpeed
             )
 
-            // Notify progress on main thread
-            task.notifyProgress(finalProgress)
+            DispatchQueue.main.async {
+                task.notifyProgress(finalProgress)
+            }
 
-            // Success
             completion(data, nil)
         }
 
