@@ -8,7 +8,7 @@
 import ImageDownloader
 import SwiftUI
 
-class StorageOnlyViewModel: ObservableObject {
+final class StorageOnlyViewModel: ObservableObject {
     var storageItemsFixed: [URL] = []
     @Published var storedImagesDynamic: [URL] = []
     @Published var fetchItem: Int = 0
@@ -27,10 +27,9 @@ class StorageOnlyViewModel: ObservableObject {
     @Published var totalBytesCountString: String = ""
     // Changing this forces SwiftUI to recreate views showing cached state
     @Published var refreshKey: UUID = UUID()
-    @Published var storageMode: StorageMode = .noStorage {
+    @AppStorage("mode") var storageMode: StorageMode = .noStorage {
         didSet {
             manager.configure(storageMode.configuration)
-            manager.hardReset()
             storedImagesDynamic = []
             storedImageCount = 0
             totalBytesCount = 0
@@ -57,7 +56,6 @@ class StorageOnlyViewModel: ObservableObject {
     
     func clearTempCache() {
         manager.clearAllCache()
-        refreshKey = UUID()
     }
 
     func refreshCache() {

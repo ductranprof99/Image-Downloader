@@ -24,11 +24,13 @@ enum StorageMode: Int, CaseIterable {
         switch self {
         case .noStorage:
             return ConfigBuilder()
-                .shouldSaveToStorage(false)
+                .disableSaveToStorage()
+                .enableDebugLogging()
                 .build()
         case .withStorage:
             return ConfigBuilder()
-                .shouldSaveToStorage(true)
+                .enableSaveToStorage()
+                .enableDebugLogging()
                 .build()
         }
     }

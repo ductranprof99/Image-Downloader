@@ -84,8 +84,14 @@ public class ConfigBuilder {
     // MARK: - Storage Configuration
 
     @discardableResult
-    public func shouldSaveToStorage(_ save: Bool) -> Self {
-        storageConfig.shouldSaveToStorage = save
+    public func enableSaveToStorage() -> Self {
+        storageConfig.shouldSaveToStorage = true
+        return self
+    }
+    
+    @discardableResult
+    public func disableSaveToStorage() -> Self {
+        storageConfig.shouldSaveToStorage = false
         return self
     }
 
@@ -185,7 +191,7 @@ extension ConfigBuilder {
     /// Start with offline-first preset
     public static func offlineFirst() -> ConfigBuilder {
         return ConfigBuilder()
-            .shouldSaveToStorage(true)
+            .enableSaveToStorage()
             .lowLatencyLimit(100)
             .highLatencyLimit(200)
     }

@@ -41,8 +41,13 @@ extension ImageDownloaderManager {
             let cacheResult = await self.cacheAgent.image(for: url)
             switch cacheResult {
             case .hit(let image):
+                if configuration.shouldSaveToStorage,
+                   self.storageAgent.image(for: url) == nil {
+                    self.storageAgent.saveImage(image, for: url)
+                } else if false {
+                    // FIXME: Check re-insertion logic (check same image, nil image)
+                }
                 mainThreadCompletion?(image, nil, true, false)
-
             case .wait:
                 if let completion = mainThreadCompletion {
                     registerCaller(
@@ -55,7 +60,9 @@ extension ImageDownloaderManager {
                 return
 
             case .miss:
-                if let storageImage = self.storageAgent.image(for: url) {
+                /// **LOGIC NOTE**: only check from storage if config allow save to storage, if not, just jump straight to fetch to download
+                if configuration.shouldSaveToStorage,
+                   let storageImage = self.storageAgent.image(for: url) {
                     await self.cacheAgent.setImage(storageImage, for: url, isHighLatency: latency.isHighLatency)
                     mainThreadCompletion?(storageImage, nil, false, true)
                 } else {
