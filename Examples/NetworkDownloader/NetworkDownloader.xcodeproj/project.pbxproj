@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		309AF71F2E97C9DE00391A23 /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 309AF71E2E97C9DE00391A23 /* ImageDownloader */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		309AF7072E97C85500391A23 /* NetworkDownloader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NetworkDownloader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				309AF71F2E97C9DE00391A23 /* ImageDownloader in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = NetworkDownloader;
 			packageProductDependencies = (
+				309AF71E2E97C9DE00391A23 /* ImageDownloader */,
 			);
 			productName = NetworkDownloader;
 			productReference = 309AF7072E97C85500391A23 /* NetworkDownloader.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 309AF6FE2E97C85500391A23;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				309AF71D2E97C9DE00391A23 /* XCLocalSwiftPackageReference "../../../Image-Downloader" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 309AF7082E97C85500391A23 /* Products */;
 			projectDirPath = "";
@@ -320,6 +329,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		309AF71D2E97C9DE00391A23 /* XCLocalSwiftPackageReference "../../../Image-Downloader" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../Image-Downloader";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		309AF71E2E97C9DE00391A23 /* ImageDownloader */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ImageDownloader;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 309AF6FF2E97C85500391A23 /* Project object */;
 }
