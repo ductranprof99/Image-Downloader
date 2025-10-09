@@ -9,7 +9,7 @@ import Foundation
 import Network
 
 /// Monitors network reachability and connection type
-public class NetworkMonitor {
+public final class NetworkMonitor {
 
     // MARK: - Singleton
 
@@ -51,43 +51,8 @@ public class NetworkMonitor {
     public func startMonitoring() {
         guard !isMonitoring else { return }
 
-        monitor.pathUpdateHandler = { [weak self] path in
-            guard let self = self else { return }
-
-            // Capture current state locally to avoid multiple self access
-            let currentState = (
-                isReachable: path.status == .satisfied,
-                isWiFi: path.usesInterfaceType(.wifi),
-                isCellular: path.usesInterfaceType(.cellular),
-                isExpensive: path.isExpensive
-            )
+        monitor.pathUpdateHandler = { 
             
-            // Store previous state for comparison
-            let previousState = (
-                isReachable: self.isReachable,
-                isWiFi: self.isWiFi,
-                isCellular: self.isCellular
-            )
-            
-            // Update state
-            self.isReachable = currentState.isReachable
-            self.isWiFi = currentState.isWiFi
-            self.isCellular = currentState.isCellular
-            self.isExpensive = currentState.isExpensive
-
-            // Notify reachability change
-//            if wasReachable != self.isReachable {
-//                DispatchQueue.main.async {
-//                    self.onReachabilityChange?(self.isReachable)
-//                }
-//            }
-//
-//            // Notify connection type change
-//            if wasWiFi != self.isWiFi || wasCellular != self.isCellular {
-//                DispatchQueue.main.async {
-//                    self.onConnectionTypeChange?(self.isWiFi, self.isCellular)
-//                }
-//            }
         }
 
         monitor.start(queue: queue)

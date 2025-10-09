@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 
 public typealias ImageCompletionBlock = (UIImage?, Error?, Bool, Bool) -> Void
-public typealias ImageProgressBlock = (CGFloat) -> Void
+public typealias ImageProgressBlock = (_ progress: CGFloat, _ speed: CGFloat, _ bytes: CGFloat) -> Void
 
 
 // MARK: - ObjectiveC Compatinble
@@ -18,7 +18,7 @@ extension ImageDownloaderManager {
     @objc public func requestImage(
         at url: URL,
         caller: AnyObject? = nil,
-        latency: ResourceLatency = .high,
+        updateLatency latency: ResourceUpdateLatency = .high,
         downloadPriority: DownloadPriority = .high,
         progress: ImageProgressBlock? = nil,
         completion: ImageCompletionBlock? = nil,
@@ -41,18 +41,28 @@ extension ImageDownloaderManager {
                 }
                 return
             case .miss:
-                let image = await downloadFromNetworkThenUpdate(
+                let image = downloadFromNetworkThenUpdate(
                     at: url,
                     downloadPriority: downloadPriority,
-                    progress: progress,
-                    completion: completion
+                    progress: { progress,speed,bytes in 
+                        
+                    },
+                    completion: { image, error, fromCache, fromStorage in
+                        if let image = image {
+                            // TODO
+                        } else {
+                            // TODO
+                        }
+                    }
                 )
-                
-                _ = self.storageAgent.saveImage(image, for: url)
-                await self.cacheAgent.setImage(image,
-                                               for: url,
-                                               isHighLatency: latency.isHighLatency)
-                notifyCaller(caller: caller)
+                if let image = image {
+                    _ = self.storageAgent.saveImage(image, for: url)
+                    await self.cacheAgent.setImage(image,
+                                                   for: url,
+                                                   isHighLatency: latency.isHighLatency)
+                    // TODO
+                    notifyCaller(caller: caller)
+                }
             }
         }
     }
@@ -64,7 +74,7 @@ extension ImageDownloaderManager {
     ) {
         requestImage(
             at: url,
-            latency: .high,
+            updateLatency: .high,
             progress: nil,
             completion: completion
         )
@@ -76,7 +86,52 @@ extension ImageDownloaderManager {
         downloadPriority: DownloadPriority,
         progress: ImageProgressBlock? = nil,
         completion: ImageCompletionBlock? = nil
-    ) -> UIImage {
-        
+    ) -> UIImage? {
+        // Convert DownloadProgress to simple CGFloat for backward compatibility
+        let progressAdapter: DownloadProgressHandler? = progress.map { progressBlock in
+            return { downloadProgress in
+                DispatchQueue.main.async {
+                    progressBlock(CGFloat(downloadProgress.progress), CGFloat(downloadProgress.speed), CGFloat(downloadProgress.bytesDownloaded))
+                }
+            }
+        }
+
+        // Step 1: Download raw data from network
+        networkAgent.downloadData(at: url, priority: downloadPriority, progress: progressAdapter) { data, error in
+            // Handle error
+            if let error = error {
+                DispatchQueue.main.async {
+                    completion?(nil, error, false, false)
+                }
+                return
+            }
+
+            // Step 2: Decode data to UIImage
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    completion?(nil, ImageDownloaderError.unknown(
+                        NSError(domain: "ImageDownloader", code: -1, userInfo: nil)
+                    ), false, false)
+                }
+                return
+            }
+
+            // Decode on background thread
+            DispatchQueue.global(qos: .userInitiated).async {
+                guard let image = ImageDecoder.decodeImage(from: data) else {
+                    DispatchQueue.main.async {
+                        completion?(nil, ImageDownloaderError.decodingFailed, false, false)
+                    }
+                    return
+                }
+
+                // Step 3: Notify completion on main thread
+                DispatchQueue.main.async {
+                    completion?(image, nil, false, false)
+                }
+            }
+        }
+
+        return nil
     }
 }

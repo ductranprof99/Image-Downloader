@@ -12,7 +12,7 @@
     case failed
 }
 
-@objc public enum ResourceLatency: Int {
+@objc public enum ResourceUpdateLatency: Int {
     case low
     case high
     

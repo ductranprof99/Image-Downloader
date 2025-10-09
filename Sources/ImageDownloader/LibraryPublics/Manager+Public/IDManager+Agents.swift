@@ -23,10 +23,15 @@ extension ImageDownloaderManager {
 extension ImageDownloaderManager {
     // MARK: - Cancel Requests
     
-    @objc public func cancelRequest(for url: URL) {
+    @objc public func cancelRequest(for url: URL, caller: AnyObject?) {
         // Note: caller parameter ignored in new actor-based implementation
         // All callbacks for the same URL share the same Task
-        networkAgent.cancelDownload(for: url)
+        if caller != nil {
+            
+        } else {
+            // Cancel all task
+            networkAgent.cancelDownload(for: url)
+        }
     }
     
     @objc public func cancelAllRequests(for url: URL) {
@@ -81,12 +86,10 @@ extension ImageDownloaderManager {
     }
 
     public func activeDownloadsCountAsync() async -> Int {
-        return await networkAgent.activeDownloadCount
+        return networkAgent.activeDownloadCount
     }
 
     public func queuedDownloadsCount() async -> Int {
-        // Note: New actor-based implementation doesn't use a queue
-        // All downloads are managed via Swift Concurrency Task system
-        return await networkAgent.pendingDownloadCount
+        return networkAgent.pendingDownloadCount
     }
 }

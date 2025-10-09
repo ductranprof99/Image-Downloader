@@ -38,10 +38,7 @@ open class UIAsyncImageView: UIImageView {
     private(set) public var imageURL: URL?
 
     /// Cache priority (default: .low)
-    open var priority: ResourcePriority = .low
-
-    /// Whether to save downloaded image to disk storage (default: true)
-    open var shouldSaveToStorage: Bool = true
+    open var config: IDConfiguration = .default
 
     /// Whether image is currently loading
     private(set) public var isLoading: Bool = false
@@ -67,9 +64,6 @@ open class UIAsyncImageView: UIImageView {
     }
 
     private func commonInit() {
-        priority = .low
-        shouldSaveToStorage = true
-        isLoading = false
         contentMode = .scaleAspectFill
         clipsToBounds = true
     }
@@ -79,110 +73,13 @@ open class UIAsyncImageView: UIImageView {
     }
 
     // MARK: - Loading Methods
-
-    /// Load image from URL with current configuration
-    /// - Parameter url: Image URL to load
-    open func loadImage(from url: URL) {
-        loadImage(
-            from: url,
-            placeholder: placeholderImage,
-            priority: priority,
-            shouldSaveToStorage: shouldSaveToStorage
-        )
-    }
-
-    /// Load image from URL with placeholder
-    /// - Parameters:
-    ///   - url: Image URL to load
-    ///   - placeholder: Placeholder image to show while loading
-    open func loadImage(from url: URL, placeholder: UIImage?) {
-        loadImage(
-            from: url,
-            placeholder: placeholder,
-            errorImage: errorImage,
-            priority: priority,
-            shouldSaveToStorage: shouldSaveToStorage
-        )
-    }
-
     /// Load image from URL with placeholder and error image
     /// - Parameters:
     ///   - url: Image URL to load
     ///   - placeholder: Placeholder image to show while loading
     ///   - errorImage: Image to show on error
-    open func loadImage(from url: URL, placeholder: UIImage?, errorImage: UIImage?) {
-        loadImage(
-            from: url,
-            placeholder: placeholder,
-            errorImage: errorImage,
-            priority: priority,
-            shouldSaveToStorage: shouldSaveToStorage
-        )
-    }
-
-    /// Load image from URL with full configuration
-    /// - Parameters:
-    ///   - url: Image URL to load
-    ///   - placeholder: Placeholder image to show while loading
-    ///   - errorImage: Image to show on error (optional)
-    ///   - priority: Cache priority
-    ///   - shouldSaveToStorage: Whether to save to disk storage
-    open func loadImage(
-        from url: URL,
-        placeholder: UIImage?,
-        errorImage: UIImage? = nil,
-        priority: ResourcePriority,
-        shouldSaveToStorage: Bool
-    ) {
-        // Cancel previous request if URL changed
-        if let currentURL = imageURL, currentURL != url {
-            cancelLoading()
-        }
-
-        imageURL = url
-        isLoading = true
-
-        // Show placeholder immediately
-        if let placeholder = placeholder {
-            self.image = placeholder
-        }
-
-        // Request image from ImageDownloaderManager
-        ImageDownloaderManager.shared.requestImage(
-            at: url,
-            priority: priority,
-            shouldSaveToStorage: shouldSaveToStorage,
-            progress: { [weak self] progress in
-                guard let self = self else { return }
-                DispatchQueue.main.async {
-                    self.onProgress?(progress)
-                }
-            },
-            completion: { [weak self] image, error, fromCache, fromStorage in
-                guard let self = self else { return }
-
-                DispatchQueue.main.async {
-                    // Only update if URL hasn't changed
-                    if self.imageURL == url {
-                        self.isLoading = false
-
-                        if let image = image {
-                            self.image = image
-                        } else if error != nil {
-                            // Show error image if provided, otherwise keep placeholder
-                            if let errorImage = errorImage {
-                                self.image = errorImage
-                            } else if let placeholder = placeholder {
-                                self.image = placeholder
-                            }
-                        }
-
-                        // Call user completion callback
-                        self.onCompletion?(image, error, fromCache, fromStorage)
-                    }
-                }
-            }
-        )
+    open func loadImage(from url: URL, placeholder: UIImage? = nil, errorImage: UIImage? = nil) {
+        // TODO
     }
 
     /// Cancel current image loading request

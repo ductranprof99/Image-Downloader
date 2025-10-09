@@ -11,25 +11,23 @@ import Foundation
 @objc public class IDCacheConfig: NSObject {
 
     // MARK: - Cache Limits
-
-    @objc public var highPriorityLimit: Int
-    @objc public var lowPriorityLimit: Int
+    @objc public var highLatencyLimit: Int
+    @objc public var lowLatencyLimit: Int
 
     // MARK: - Cache Behavior
-
     @objc public var clearLowPriorityOnMemoryWarning: Bool
     @objc public var clearAllOnMemoryWarning: Bool
 
     // MARK: - Initialization
 
     @objc public init(
-        highPriorityLimit: Int = 50,
-        lowPriorityLimit: Int = 100,
+        highLatencyLimit: Int = 50,
+        lowLatencyLimit: Int = 100,
         clearLowPriorityOnMemoryWarning: Bool = true,
         clearAllOnMemoryWarning: Bool = false
     ) {
-        self.highPriorityLimit = highPriorityLimit
-        self.lowPriorityLimit = lowPriorityLimit
+        self.highLatencyLimit = highLatencyLimit
+        self.lowLatencyLimit = lowLatencyLimit
         self.clearLowPriorityOnMemoryWarning = clearLowPriorityOnMemoryWarning
         self.clearAllOnMemoryWarning = clearAllOnMemoryWarning
         super.init()
@@ -45,8 +43,8 @@ import Foundation
 
     func toInternalConfig() -> CacheConfig {
         return CacheConfig(
-            highPriorityLimit: highPriorityLimit,
-            lowPriorityLimit: lowPriorityLimit,
+            highLatencyLimit: highLatencyLimit,
+            lowLatencyLimit: lowLatencyLimit,
             clearLowPriorityOnMemoryWarning: clearLowPriorityOnMemoryWarning,
             clearAllOnMemoryWarning: clearAllOnMemoryWarning
         )

@@ -2,58 +2,59 @@
 //  NetworkAgent.swift
 //  ImageDownloader
 //
-//  Manages concurrent image downloads with modern async/await
-//  Uses Swift Actor for thread-safe concurrency control
-//  Uses a single shared URLSession for efficiency
+//  Manages concurrent downloads with GCD for thread safety
+//  Downloads RAW DATA only - image decoding is handled separately
+//  Thread-safe using serial DispatchQueue
+//  Fully ObjC compatible with callback-based API
 //
 
 import Foundation
-#if canImport(UIKit)
-import UIKit
-#endif
 
-/// NetworkAgent handles image downloads with automatic concurrency limiting and request deduplication
-/// All state is actor-isolated for thread safety without DispatchQueue
-/// Uses a single shared URLSession across all instances for resource efficiency
-internal actor NetworkAgent {
+/// Completion handler for downloads
+typealias DownloadCompletionHandler = (Data?, Error?) -> Void
+typealias DownloadProgressHandler = (DownloadProgress) -> Void
+
+/// NetworkAgent handles data downloads with automatic concurrency limiting and request deduplication
+/// Thread-safe using serial DispatchQueue
+/// Downloads RAW DATA - image decoding handled separately
+final class NetworkAgent: NSObject {
 
     // MARK: - Shared Resources
 
     /// Shared URLSession instance used by all NetworkAgent instances
-    /// This is more efficient than creating multiple sessions
     private static let sharedSession: URLSession = {
         let config = URLSessionConfiguration.default
-        // Enable background network access (URLSession handles this properly)
         config.sessionSendsLaunchEvents = true
         config.isDiscretionary = false
-
-        // Reasonable defaults
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 300
         config.httpMaximumConnectionsPerHost = 6
         config.allowsCellularAccess = true
 
-        // Create with delegate for auth challenges
         return URLSession(configuration: config, delegate: SessionDelegate.shared, delegateQueue: nil)
     }()
 
     // MARK: - Configuration Properties
 
-    var maxConcurrentDownloads: Int
-    var timeout: TimeInterval
-    var retryPolicy: RetryPolicy
-    var customHeaders: [String: String]?
-    var authenticationHandler: ((inout URLRequest) -> Void)?
-    var allowsCellularAccess: Bool
+    private var maxConcurrentDownloads: Int
+    private var timeout: TimeInterval
+    private var retryPolicy: RetryPolicy
+    private var customHeaders: [String: String]?
+    private var authenticationHandler: ((inout URLRequest) -> Void)?
+    private var allowsCellularAccess: Bool
 
-    // MARK: - Private State
+    // MARK: - Thread Safety
 
-    /// Active downloads: URL -> DownloadOperation
-    /// Provides automatic request deduplication - multiple requests for same URL share one download
-    private var activeDownloads: [String: DownloadOperation] = [:]
+    /// Serial queue for thread-safe access to internal state
+    private let isolationQueue = DispatchQueue(label: "com.imagedownloader.networkagent.isolation", qos: .userInitiated)
+
+    // MARK: - Private State (Access only via isolationQueue)
+
+    /// Active downloads: URL -> DownloadTask
+    private var activeDownloads: [String: DownloadTask] = [:]
 
     /// Pending downloads waiting for slot (FIFO queue with priority)
-    private var pendingQueue: [PendingDownload] = []
+    private var pendingQueue: [PendingDownloadRequest] = []
 
     // MARK: - Initialization
 
@@ -64,181 +65,181 @@ internal actor NetworkAgent {
         self.customHeaders = config.customHeaders
         self.authenticationHandler = config.authenticationHandler
         self.allowsCellularAccess = config.allowsCellularAccess
+        super.init()
     }
 
-    // MARK: - Public API (Non-isolated for sync access)
-
-    /// Download an image using completion handler (backwards compatible)
-    nonisolated func downloadResource(
+    // MARK: - Downloader agent api
+    /// Download data with priority (ObjC compatible)
+    func downloadData(
         at url: URL,
-        progress: ((CGFloat) -> Void)? = nil,
-        completion: ((UIImage?, Error?) -> Void)?
+        priority: DownloadPriority = .high,
+        progress: DownloadProgressHandler? = nil,
+        completion: @escaping DownloadCompletionHandler
     ) {
-        Task {
-            do {
-                let image = try await downloadResource(at: url, progress: progress)
-                completion?(image, nil)
-            } catch {
-                completion?(nil, error)
+        isolationQueue.async { [weak self] in
+            guard let self = self else {
+                completion(nil, ImageDownloaderError.unknown(
+                    NSError(domain: "NetworkAgent", code: -1, userInfo: [NSLocalizedDescriptionKey: "NetworkAgent deallocated"])
+                ))
+                return
             }
-        }
-    }
 
-    /// Cancel download for specific URL
-    nonisolated func cancelDownload(for url: URL) {
-        Task {
-            await _cancelDownload(for: url)
-        }
-    }
+            let urlKey = url.absoluteString
 
-    // MARK: - Public API (Actor-isolated async methods)
+            // REQUEST DEDUPLICATION: Check if already downloading
+            if let existingTask = self.activeDownloads[urlKey] {
+                // Join existing download
+                existingTask.addWaiter(completion: completion, progress: progress)
+                return
+            }
 
-    /// Download an image using pure async/await
-    /// Automatically handles:
-    /// - Request deduplication (multiple requests for same URL share one download)
-    /// - Concurrency limiting (respects maxConcurrentDownloads)
-    /// - Priority queueing (high priority requests processed first)
-    func downloadResource(
-        at url: URL,
-        priority: ResourcePriority,
-        progress: ((CGFloat) -> Void)? = nil
-    ) async throws -> UIImage {
-        let urlKey = url.absoluteString
-
-        // REQUEST DEDUPLICATION: Check if already downloading
-        if let existingOperation = activeDownloads[urlKey] {
-            // Join existing download instead of starting new one
-            return try await existingOperation.task.value
-        }
-
-        // CONCURRENCY LIMITING: Check if we have available slots
-        if activeDownloads.count >= maxConcurrentDownloads {
-            // Queue is full - wait in pending queue
-            return try await withCheckedThrowingContinuation { continuation in
-                let pending = PendingDownload(
+            // CONCURRENCY LIMITING: Check if we have available slots
+            if self.activeDownloads.count >= self.maxConcurrentDownloads {
+                // Queue is full - add to pending queue
+                let pending = PendingDownloadRequest(
                     url: url,
                     priority: priority,
-                    continuation: continuation,
-                    progress: progress
+                    progress: progress,
+                    completion: completion
                 )
 
-                // Insert based on priority (high priority first)
+                // Insert based on priority
                 if priority == .high {
-                    // Find first low priority item and insert before it
-                    if let index = pendingQueue.firstIndex(where: { $0.priority == .low }) {
-                        pendingQueue.insert(pending, at: index)
+                    if let index = self.pendingQueue.firstIndex(where: { $0.priority == .low }) {
+                        self.pendingQueue.insert(pending, at: index)
                     } else {
-                        pendingQueue.append(pending)
+                        self.pendingQueue.append(pending)
                     }
                 } else {
-                    pendingQueue.append(pending)
+                    self.pendingQueue.append(pending)
                 }
+                return
+            }
+
+            // Start new download
+            self.startDownloadUnsafe(url: url, priority: priority, progress: progress, completion: completion)
+        }
+    }
+
+    /// Cancel download for specific URL (ObjC compatible)
+    @objc public func cancelDownload(for url: URL) {
+        isolationQueue.async { [weak self] in
+            guard let self = self else { return }
+
+            let urlKey = url.absoluteString
+
+            // Cancel active download
+            if let task = self.activeDownloads[urlKey] {
+                task.cancel()
+                self.activeDownloads.removeValue(forKey: urlKey)
+
+                // Notify all waiters
+                let error = ImageDownloaderError.cancelled
+                task.notifyAllWaiters(data: nil, error: error)
+
+                // Process next pending
+                self.processNextPendingUnsafe()
+                return
+            }
+
+            // Remove from pending queue
+            self.pendingQueue.removeAll { pending in
+                if pending.url.absoluteString == urlKey {
+                    pending.completion(nil, ImageDownloaderError.cancelled)
+                    return true
+                }
+                return false
             }
         }
-
-        // Start new download
-        return try await startDownload(url: url, priority: priority, progress: progress)
     }
 
-    /// Get statistics
-    var activeDownloadCount: Int {
-        get async {
-            activeDownloads.count
+    // MARK: - Statistics (ObjC Compatible)
+
+    @objc public var activeDownloadCount: Int {
+        var count = 0
+        isolationQueue.sync {
+            count = activeDownloads.count
         }
+        return count
     }
 
-    var pendingDownloadCount: Int {
-        get async {
-            pendingQueue.count
+    @objc public var pendingDownloadCount: Int {
+        var count = 0
+        isolationQueue.sync {
+            count = pendingQueue.count
         }
+        return count
     }
 
-    // MARK: - Private Methods
+    // MARK: - Private Methods (Must be called on isolationQueue)
 
-    /// Start a new download (assumes slot is available)
-    private func startDownload(
+    /// Start a new download (must be called on isolationQueue)
+    private func startDownloadUnsafe(
         url: URL,
-        priority: ResourcePriority,
-        progress: ((CGFloat) -> Void)?
-    ) async throws -> UIImage {
+        priority: DownloadPriority,
+        progress: DownloadProgressHandler?,
+        completion: @escaping DownloadCompletionHandler
+    ) {
         let urlKey = url.absoluteString
 
         // Create download task
-        let downloadTask = Task(priority: priority.taskPriority) { [weak self] () -> UIImage in
-            guard let self = self else {
-                throw ImageDownloaderError.unknown(
-                    NSError(domain: "ImageDownloader.NetworkAgent", code: -3,
-                            userInfo: [NSLocalizedDescriptionKey: "NetworkAgent was deallocated"])
-                )
+        let downloadTask = DownloadTask(url: url, priority: priority)
+        downloadTask.addWaiter(completion: completion, progress: progress)
+        activeDownloads[urlKey] = downloadTask
+
+        // Perform download on background queue
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+
+            self.performDownload(
+                url: url,
+                retryAttempt: 0,
+                task: downloadTask
+            ) { data, error in
+                // Handle completion on isolation queue
+                self.isolationQueue.async {
+                    self.activeDownloads.removeValue(forKey: urlKey)
+
+                    // Notify all waiters
+                    downloadTask.notifyAllWaiters(data: data, error: error)
+
+                    // Process next pending download
+                    self.processNextPendingUnsafe()
+                }
             }
-
-            return try await self.performDownload(url: url, retryAttempt: 0, progress: progress)
-        }
-
-        // Track the operation
-        let operation = DownloadOperation(url: url, priority: priority, task: downloadTask)
-        activeDownloads[urlKey] = operation
-
-        // Wait for completion
-        do {
-            let image = try await downloadTask.value
-
-            // Cleanup
-            activeDownloads.removeValue(forKey: urlKey)
-
-            // Process next pending download
-            await processNextPending()
-
-            return image
-
-        } catch {
-            // Cleanup on error
-            activeDownloads.removeValue(forKey: urlKey)
-
-            // Process next pending download
-            await processNextPending()
-
-            throw error
         }
     }
 
-    /// Process next pending download if slot available
-    /// FIXED: Now properly async to avoid continuation leaks
-    private func processNextPending() async {
-        // Check if we have capacity and pending downloads
+    /// Process next pending download if slot available (must be called on isolationQueue)
+    private func processNextPendingUnsafe() {
         guard activeDownloads.count < maxConcurrentDownloads,
               !pendingQueue.isEmpty else {
             return
         }
 
-        // Dequeue next pending download
         let pending = pendingQueue.removeFirst()
 
-        // FIXED: Use structured concurrency - ensure continuation is ALWAYS resumed
-        do {
-            let image = try await startDownload(
-                url: pending.url,
-                priority: pending.priority,
-                progress: pending.progress
-            )
-            pending.continuation.resume(returning: image)
-        } catch {
-            pending.continuation.resume(throwing: error)
-        }
+        // Start download
+        startDownloadUnsafe(
+            url: pending.url,
+            priority: pending.priority,
+            progress: pending.progress,
+            completion: pending.completion
+        )
     }
 
     /// Perform the actual download with retry logic
-    /// Uses shared URLSession with per-request configuration
     private func performDownload(
         url: URL,
         retryAttempt: Int,
-        progress: ((CGFloat) -> Void)?
-    ) async throws -> UIImage {
-        // Build request with per-request configuration
+        task: DownloadTask,
+        completion: @escaping DownloadCompletionHandler
+    ) {
+        // Build request
         var request = URLRequest(url: url)
-        request.timeoutInterval = timeout  // Per-request timeout
-        request.allowsCellularAccess = allowsCellularAccess  // Per-request cellular access
-        request.cachePolicy = .reloadIgnoringLocalCacheData  // Always fetch fresh
+        request.timeoutInterval = timeout
+        request.allowsCellularAccess = allowsCellularAccess
+        request.cachePolicy = .reloadIgnoringLocalCacheData
 
         // Apply custom headers
         if let customHeaders = customHeaders {
@@ -250,85 +251,89 @@ internal actor NetworkAgent {
         // Apply authentication handler
         authenticationHandler?(&request)
 
-        do {
-            // Execute download using SHARED URLSession with configured request
-            let (data, response) = try await Self.sharedSession.data(for: request)
+        let startTime = Date()
 
-            // Validate HTTP response
+        // Create URLSession task
+        let urlSessionTask = Self.sharedSession.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else {
+                completion(nil, ImageDownloaderError.unknown(
+                    NSError(domain: "NetworkAgent", code: -1, userInfo: nil)
+                ))
+                return
+            }
+
+            // Handle error
+            if let error = error {
+                // Check if should retry
+                if self.retryPolicy.shouldRetry(for: error, attempt: retryAttempt, url: url) {
+                    let delay = self.retryPolicy.delay(forAttempt: retryAttempt + 1)
+
+                    // Retry after delay
+                    DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + delay) {
+                        self.performDownload(url: url, retryAttempt: retryAttempt + 1, task: task, completion: completion)
+                    }
+                    return
+                }
+
+                // No retry - fail
+                completion(nil, self.convertToImageDownloaderError(error))
+                return
+            }
+
+            // Validate response
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw ImageDownloaderError.networkError(
+                completion(nil, ImageDownloaderError.networkError(
                     NSError(domain: "ImageDownloader", code: -1,
                             userInfo: [NSLocalizedDescriptionKey: "Invalid response type"])
-                )
+                ))
+                return
             }
 
             // Check status code
             guard (200...299).contains(httpResponse.statusCode) else {
                 if httpResponse.statusCode == 404 {
-                    throw ImageDownloaderError.notFound
+                    completion(nil, ImageDownloaderError.notFound)
                 } else {
-                    throw ImageDownloaderError.networkError(
+                    completion(nil, ImageDownloaderError.networkError(
                         NSError(domain: NSURLErrorDomain, code: httpResponse.statusCode,
                                 userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode)"])
-                    )
+                    ))
                 }
+                return
             }
 
-            // Decode image
-            guard let image = UIImage(data: data) else {
-                throw ImageDownloaderError.decodingFailed
+            // Validate data
+            guard let data = data else {
+                completion(nil, ImageDownloaderError.networkError(
+                    NSError(domain: "ImageDownloader", code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "No data received"])
+                ))
+                return
             }
 
-            // Report completion
-            progress?(1.0)
+            // Report final progress
+            let totalBytes = Int64(data.count)
+            let totalTime = Date().timeIntervalSince(startTime)
+            let avgSpeed = totalTime > 0 ? Double(totalBytes) / totalTime : 0
 
-            return image
+            let finalProgress = DownloadProgress(
+                bytesDownloaded: totalBytes,
+                totalBytes: totalBytes,
+                speed: avgSpeed
+            )
 
-        } catch {
-            // RETRY LOGIC: Check if should retry
-            if retryPolicy.shouldRetry(for: error, attempt: retryAttempt, url: url) {
-                let delay = retryPolicy.delay(forAttempt: retryAttempt + 1)
+            // Notify progress on main thread
+            task.notifyProgress(finalProgress)
 
-                // Wait before retry
-                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-
-                // Check cancellation
-                try Task.checkCancellation()
-
-                // Recursive retry
-                return try await performDownload(url: url, retryAttempt: retryAttempt + 1, progress: progress)
-            }
-
-            // Convert and throw error
-            throw convertToImageDownloaderError(error)
-        }
-    }
-
-    /// Cancel download for specific URL
-    private func _cancelDownload(for url: URL) {
-        let urlKey = url.absoluteString
-
-        // Cancel active download
-        if let operation = activeDownloads[urlKey] {
-            operation.task.cancel()
-            activeDownloads.removeValue(forKey: urlKey)
-
-            // Process next pending (spawn task to avoid blocking)
-            Task {
-                await processNextPending()
-            }
-            return
+            // Success
+            completion(data, nil)
         }
 
-        // Remove from pending queue and resume with cancellation error
-        pendingQueue.removeAll { pending in
-            if pending.url.absoluteString == urlKey {
-                // FIXED: Resume continuation with cancellation before removing
-                pending.continuation.resume(throwing: ImageDownloaderError.cancelled)
-                return true
-            }
-            return false
-        }
+        // Store task for cancellation
+        task.urlSessionTask = urlSessionTask
+
+        // Start download
+        urlSessionTask.resume()
     }
 
     /// Convert NSError to ImageDownloaderError
@@ -339,23 +344,19 @@ internal actor NetworkAgent {
 
         let nsError = error as NSError
 
-        // Cancellation
         if nsError.code == NSURLErrorCancelled ||
            (nsError.domain == NSCocoaErrorDomain && nsError.code == NSUserCancelledError) {
             return .cancelled
         }
 
-        // Timeout
         if nsError.code == NSURLErrorTimedOut {
             return .timeout
         }
 
-        // Not found
         if nsError.code == NSURLErrorFileDoesNotExist || nsError.code == NSURLErrorBadURL {
             return .notFound
         }
 
-        // Network error
         if nsError.domain == NSURLErrorDomain {
             return .networkError(error)
         }
@@ -365,53 +366,22 @@ internal actor NetworkAgent {
 
     // MARK: - Cleanup
 
-    func cleanup() {
-        // Cancel all active downloads
-        for (_, operation) in activeDownloads {
-            operation.task.cancel()
+    @objc public func cleanup() {
+        isolationQueue.async { [weak self] in
+            guard let self = self else { return }
+
+            // Cancel all active downloads
+            for (_, task) in self.activeDownloads {
+                task.cancel()
+                task.notifyAllWaiters(data: nil, error: ImageDownloaderError.cancelled)
+            }
+            self.activeDownloads.removeAll()
+
+            // Clear pending queue
+            for pending in self.pendingQueue {
+                pending.completion(nil, ImageDownloaderError.cancelled)
+            }
+            self.pendingQueue.removeAll()
         }
-        activeDownloads.removeAll()
-
-        // FIXED: Resume all pending continuations before clearing
-        for pending in pendingQueue {
-            pending.continuation.resume(throwing: ImageDownloaderError.cancelled)
-        }
-        pendingQueue.removeAll()
-    }
-}
-
-// MARK: - Supporting Extensions
-
-extension ResourcePriority {
-    var taskPriority: TaskPriority {
-        switch self {
-        case .high:
-            return .high
-        case .low:
-            return .low
-        }
-    }
-}
-
-// MARK: - Session Delegate
-
-/// Shared URLSession delegate for handling authentication challenges
-/// Singleton pattern since URLSession is shared across all NetworkAgent instances
-private class SessionDelegate: NSObject, URLSessionDelegate {
-
-    static let shared = SessionDelegate()
-
-    private override init() {
-        super.init()
-    }
-
-    func urlSession(
-        _ session: URLSession,
-        didReceive challenge: URLAuthenticationChallenge,
-        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
-    ) {
-        // Handle authentication challenges if needed
-        // Default: perform default handling (trust system certificates)
-        completionHandler(.performDefaultHandling, nil)
     }
 }

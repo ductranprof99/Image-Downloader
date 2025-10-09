@@ -55,16 +55,17 @@ public class ConfigBuilder {
     }
 
     // MARK: - Cache Configuration
-
+    /// Number of item will storage on cache (high latency cache)
     @discardableResult
-    public func highPriorityLimit(_ limit: Int) -> Self {
-        cacheConfig.highPriorityLimit = limit
+    public func highLatencyLimit(_ limit: Int) -> Self {
+        cacheConfig.highLatencyLimit = limit
         return self
     }
 
+    /// Number of item will storage on cache (low latency cache)
     @discardableResult
-    public func lowPriorityLimit(_ limit: Int) -> Self {
-        cacheConfig.lowPriorityLimit = limit
+    public func lowLatencyLimit(_ limit: Int) -> Self {
+        cacheConfig.lowLatencyLimit = limit
         return self
     }
 
@@ -134,8 +135,8 @@ public class ConfigBuilder {
         network.authenticationHandler = networkConfig.authenticationHandler
 
         let cache = IDCacheConfig(
-            highPriorityLimit: cacheConfig.highPriorityLimit,
-            lowPriorityLimit: cacheConfig.lowPriorityLimit,
+            highLatencyLimit: cacheConfig.highLatencyLimit,
+            lowLatencyLimit: cacheConfig.lowLatencyLimit,
             clearLowPriorityOnMemoryWarning: cacheConfig.clearLowPriorityOnMemoryWarning,
             clearAllOnMemoryWarning: cacheConfig.clearAllOnMemoryWarning
         )
@@ -166,8 +167,8 @@ extension ConfigBuilder {
     public static func highPerformance() -> ConfigBuilder {
         return ConfigBuilder()
             .maxConcurrentDownloads(8)
-            .highPriorityLimit(100)
-            .lowPriorityLimit(200)
+            .lowLatencyLimit(100)
+            .highLatencyLimit(200)
             .retryPolicy(.defaultPolicy())
     }
 
@@ -175,8 +176,8 @@ extension ConfigBuilder {
     public static func lowMemory() -> ConfigBuilder {
         return ConfigBuilder()
             .maxConcurrentDownloads(2)
-            .highPriorityLimit(20)
-            .lowPriorityLimit(50)
+            .lowLatencyLimit(20)
+            .highLatencyLimit(50)
             .clearLowPriorityOnMemoryWarning(true)
             .clearAllOnMemoryWarning(true)
     }
@@ -185,7 +186,7 @@ extension ConfigBuilder {
     public static func offlineFirst() -> ConfigBuilder {
         return ConfigBuilder()
             .shouldSaveToStorage(true)
-            .highPriorityLimit(100)
-            .lowPriorityLimit(200)
+            .lowLatencyLimit(100)
+            .highLatencyLimit(200)
     }
 }

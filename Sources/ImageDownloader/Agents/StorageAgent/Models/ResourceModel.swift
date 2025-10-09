@@ -16,7 +16,6 @@ internal class ResourceModel {
     let url: URL
     let identifier: String
     var state: ResourceState
-    var priority: ResourcePriority
     var image: UIImage?
     var error: Error?
     var progress: CGFloat
@@ -24,12 +23,11 @@ internal class ResourceModel {
 
     // MARK: - Initialization
 
-    public init(url: URL, priority: ResourcePriority, identifierProvider: ResourceIdentifierProvider? = nil) {
+    public init(url: URL, identifierProvider: ResourceIdentifierProvider? = nil) {
         self.url = url
         // Use provided identifier provider or default to MD5
         let provider = identifierProvider ?? MD5IdentifierProvider()
         self.identifier = provider.identifier(for: url)
-        self.priority = priority
         self.state = .unknown
         self.progress = 0.0
         self.shouldSaveToStorage = true

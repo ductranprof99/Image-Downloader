@@ -10,7 +10,7 @@ import UIKit
 
 /// Progress update for async image loading for async await
 public enum ImageLoadingProgress {
-    case progress(CGFloat)
+    case loading(CGFloat, CGFloat, CGFloat)
     case completed(ImageResult)
 }
 
@@ -27,7 +27,8 @@ extension ImageDownloaderManager {
     /// - Note: This method uses pure async/await patterns without mixing with DispatchQueue
     public func requestImageAsync(
         at url: URL,
-        priority: DownloadPriority = .low,
+        updateLatency: ResourceUpdateLatency = .high,
+        downloadPriority: DownloadPriority = .high,
     ) async throws -> ImageResult {
         // Check cache (synchronous, thread-safe)
         let cacheResult = await self.cacheAgent.image(for: url)
@@ -40,23 +41,13 @@ extension ImageDownloaderManager {
                 fromStorage: false
             )
         case .wait:
-            
+            break
         case .miss:
-            
+            break
         }
 
         // Download from network (async)
-        let image = try await downloadImageAsync(
-            at: url,
-            downloadPriority: priority
-        )
-
-        return ImageResult(
-            image: image,
-            url: url,
-            fromCache: false,
-            fromStorage: false
-        )
+        // TODO: Download, then save to somewhere
     }
 
     /// Request image with progress updates using AsyncStream
