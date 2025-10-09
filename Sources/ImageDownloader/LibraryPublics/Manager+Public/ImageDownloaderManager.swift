@@ -6,37 +6,18 @@
 //
 
 import Foundation
-#if canImport(UIKit)
 import UIKit
-#endif
-
-public typealias ImageCompletionBlock = (UIImage?, Error?, Bool, Bool) -> Void
-public typealias ImageProgressBlock = (CGFloat) -> Void
 
 @objc @objcMembers
 public class ImageDownloaderManager: NSObject {
-    // MARK: - Library private Properties
-    var cacheAgent: CacheAgent
-    var storageAgent: StorageAgent
-    var networkAgent: NetworkAgent
-    var configuration: IDConfiguration
-    
-    let managerQueue = DispatchQueue(label: "com.imagedownloader.manager.queue")
-    // Store identifier provider for ResourceModel creation
-    private var identifierProvider: ResourceIdentifierProvider
-    /// Manager instances cache for custom configurations
-    private static var instances: [String: ImageDownloaderManager] = [:]
-    private static let instancesLock = NSLock()
-    private(set) var observerManager: ObserverManager
-    
     /// Singleton & Factory
     /// Shared singleton instance with default configuration
-    public static let shared = ImageDownloaderManager()
+    static let shared = ImageDownloaderManager()
     
     /// Get or create a manager instance for a specific configuration
     /// - Parameter config: Custom configuration (nil = use shared instance)
     /// - Returns: ImageDownloaderManager configured with the specified config
-    public static func instance(for config: IDConfiguration? = nil) -> ImageDownloaderManager {
+    @objc public static func instance(for config: IDConfiguration? = nil) -> ImageDownloaderManager {
         guard let config = config else {
             return shared
         }
@@ -57,20 +38,30 @@ public class ImageDownloaderManager: NSObject {
         return manager
     }
     
-    // MARK: - Initialization
     
+    // MARK: - Library private Properties
+    var cacheAgent: CacheAgent
+    var storageAgent: StorageAgent
+    var networkAgent: NetworkAgent
+    var configuration: IDConfiguration
+    
+    let managerQueue = DispatchQueue(label: "com.imagedownloader.manager.queue")
+    /// Manager instances cache for custom configurations
+    private static var instances: [String: ImageDownloaderManager] = [:]
+    private static let instancesLock = NSLock()
+    
+
+    // MARK: - Initialization
     /// Private initializer for singleton
     private override init() {
         // Default configuration
         self.configuration = .default
-        self.identifierProvider = configuration.storage.identifierProvider
         let (networkConfig, cacheConfig, storageConfig) = configuration.toInternalConfigs()
         
         // Update agents with new configuration
         cacheAgent = CacheAgent(config: cacheConfig)
         storageAgent = StorageAgent(config: storageConfig)
         networkAgent = NetworkAgent(config: networkConfig)
-        observerManager = ObserverManager()
         super.init()
     }
     
@@ -79,16 +70,12 @@ public class ImageDownloaderManager: NSObject {
         // Convert protocol config to IDConfiguration
         self.configuration = config
         let (networkConfig, cacheConfig, storageConfig) = config.toInternalConfigs()
-        // Store identifier provider
-        self.identifierProvider = config.storage.identifierProvider
 
         // Initialize agents with protocol config
         cacheAgent = CacheAgent(config: cacheConfig)
         storageAgent = StorageAgent(config: storageConfig)
         networkAgent = NetworkAgent(config: networkConfig)
-        observerManager = ObserverManager()
         super.init()
-//        self.cacheAgent.delegate = self
     }
 }
 
@@ -123,70 +110,12 @@ extension ImageDownloaderManager {
             return .networkError(error)
         }
     }
-
-    func downloadImageFromNetwork(
-        at url: URL,
-        priority: ResourcePriority,
-        shouldSaveToStorage: Bool,
-        progress: ImageProgressBlock?,
-        completion: ImageCompletionBlock?,
-    ) {
-        // Ensure callbacks run on main thread
-        let mainThreadProgress: ImageProgressBlock? = progress.map { block in
-            return { progress in
-                DispatchQueue.main.async { block(progress) }
-            }
-        }
+    
+    func registerCaller(url: URL, caller: AnyObject?) {
         
-        let mainThreadCompletion: ImageCompletionBlock? = completion.map { block in
-            return { image, error, fromCache, fromStorage in
-                DispatchQueue.main.async { block(image, error, fromCache, fromStorage) }
-            }
-        }
-        observerManager.notifyWillStartDownloading(url: url)
-
-        networkAgent.downloadResource(
-            at: url,
-            priority: priority,
-            progress: { [weak self] downloadProgress in
-                guard let self = self else { return }
-
-                // Forward progress
-                self.observerManager.notifyDownloadProgress(url: url, progress: downloadProgress)
-                mainThreadProgress?(downloadProgress)
-            },
-            completion: { [weak self] image, error in
-                guard let self = self else { return }
-
-                if let image = image {
-                    // Success: update cache
-                    let cachePriority: CachePriority = (priority == .high) ? .high : .low
-                    Task {
-                        await self.cacheAgent.setImage(image, for: url, priority: cachePriority)
-                    }
-                    // Save to storage if needed
-                    if shouldSaveToStorage {
-                        self.storageAgent.saveImage(image, for: url, completion: nil)
-                    }
-
-                    self.observerManager.notifyImageDidLoad(url: url, fromCache: false, fromStorage: false)
-
-                    mainThreadCompletion?(image, nil, false, false)
-                } else {
-                    // Failure
-                    let finalError = error ?? NSError(
-                        domain: "ImageDownloader.Manager",
-                        code: -1,
-                        userInfo: [NSLocalizedDescriptionKey: "Unknown download error"]
-                    )
-
-                    self.observerManager.notifyImageDidFail(url: url, error: finalError)
-
-                    if let completion = completion {
-                        completion(nil, finalError, false, false)
-                    }
-                }
-            }
-        )
+    }
+    
+    func notifyCaller(caller: AnyObject?) {
+        
     }
 }

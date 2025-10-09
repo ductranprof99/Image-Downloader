@@ -10,26 +10,23 @@ import ImageDownloader
 
 enum StorageMode: Int, CaseIterable {
     case noStorage = 0
-    case highPriorityLowStorage = 1
-    case lowPriorityWithStorage = 2
+    case withStorage = 1
     
     var description: String {
         switch self {
         case .noStorage:
             return "No Storage"
-        case .highPriorityLowStorage:
-            return "High + Storage"
-        case .lowPriorityWithStorage:
-            return "Low + Storage"
+        case .withStorage:
+            return "Storage"
         }
     }
     
-    var configuration: (priority: ResourcePriority, shouldSaveToStorage: Bool) {
+    var configuration: ResourcePriority {
         switch self {
         case .noStorage:
-            return (.low, false)
+            return .low
         case .highPriorityLowStorage:
-            return (.high, true)
+            return
         case .lowPriorityWithStorage:
             return (.low, true)
         }

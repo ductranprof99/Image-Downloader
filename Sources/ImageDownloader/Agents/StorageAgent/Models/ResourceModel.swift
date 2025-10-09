@@ -13,15 +13,14 @@ import UIKit
 internal class ResourceModel {
     // MARK: - Properties
 
-    public let url: URL
-    public let identifier: String
-    public var state: ResourceState
-    public var priority: ResourcePriority
-    public var image: UIImage?
-    public var error: Error?
-    public var progress: CGFloat
-    public private(set) var lastAccessDate: Date
-    public var shouldSaveToStorage: Bool
+    let url: URL
+    let identifier: String
+    var state: ResourceState
+    var priority: ResourcePriority
+    var image: UIImage?
+    var error: Error?
+    var progress: CGFloat
+    var shouldSaveToStorage: Bool
 
     // MARK: - Initialization
 
@@ -34,12 +33,5 @@ internal class ResourceModel {
         self.state = .unknown
         self.progress = 0.0
         self.shouldSaveToStorage = true
-        self.lastAccessDate = Date()
-    }
-
-    // MARK: - Public Methods
-
-    public func updateLastAccessDate() {
-        lastAccessDate = Date()
     }
 }

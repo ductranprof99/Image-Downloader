@@ -9,224 +9,190 @@
 import Foundation
 import UIKit
 
+enum CacheFetchResult {
+    case hit(UIImage)
+    case wait
+    case miss
+}
+
 /// CacheAgent manages a two-tier LRU cache for images
 internal actor CacheAgent {
     // MARK: - Properties
-//    weak var delegate: CacheAgentDelegate?
-
     /// All cached entries indexed by URL string
+    /// But it also act like a barrier, since this agent is actor, every access must be thread safe, if cache data contain that key -> it mean
     private var cacheData: [String: CacheEntry] = [:]
 
     /// High priority LRU queue (least recent first, most recent last)
-    private var highPriorityKeys: [String] = []
-
+    private var lowLatencyCache: [String] = []
+    private let lowLatencyLimit: Int
+    
     /// Low priority LRU queue (least recent first, most recent last)
-    private var lowPriorityKeys: [String] = []
-
-    private let highPriorityLimit: Int
-    private let lowPriorityLimit: Int
+    private var highLatencyCache: [String] = []
+    private let highLatencyLimit: Int
+   
     private let config: CacheConfig
-
+    
     // MARK: - Initialization
-
     init(config: CacheConfig) {
         self.config = config
-        self.highPriorityLimit = config.highPriorityLimit
-        self.lowPriorityLimit = config.lowPriorityLimit
-        setupMemoryWarningObserver()
+        self.highLatencyLimit = config.highLatencyLimit
+        self.lowLatencyLimit = config.lowLatencyLimit
     }
 
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
 
-    // MARK: - Public API (Actor-isolated async methods)
-
+    // MARK: - Actor isolated set/get image
     /// Get image from cache and update LRU
-    func image(for url: URL) -> UIImage? {
+    func image(for url: URL) -> CacheFetchResult {
         let urlKey = url.absoluteString
-        guard let entry = cacheData[urlKey] else { return nil }
+        guard let entry = cacheData[urlKey] else {
+            cacheData[urlKey] = .default
+            return .miss
+        }
+        
+        if cacheData[urlKey] == .default {
+            return .wait
+        }
+        
 
         // Update access time
-        entry.lastAccessDate = Date()
-
         // Update LRU: move to end (most recently used)
-        if entry.priority == .high {
-            highPriorityKeys.removeAll { $0 == urlKey }
-            highPriorityKeys.append(urlKey)
+        if entry.usuallyUpdate {
+            highLatencyCache.removeAll { $0 == urlKey }
+            highLatencyCache.append(urlKey)
         } else {
-            lowPriorityKeys.removeAll { $0 == urlKey }
-            lowPriorityKeys.append(urlKey)
+            lowLatencyCache.removeAll { $0 == urlKey }
+            lowLatencyCache.append(urlKey)
         }
 
-        return entry.image
+        return .hit(entry.image)
     }
 
     /// Set image in cache with priority
-    func setImage(_ image: UIImage, for url: URL, priority: CachePriority) async {
+    func setImage(_ image: UIImage, for url: URL,isHighLatency usuallyUpdate: Bool) async {
         let urlKey = url.absoluteString
 
-        // Check if already exists
-        if let existingEntry = cacheData[urlKey] {
-            // Update existing entry
+        if cacheData[urlKey] == .default {
+            let entry = CacheEntry(image: image,
+                                   url: url,
+                                   usuallyUpdate: usuallyUpdate)
+            cacheData[urlKey] = entry
+
+            if usuallyUpdate {
+                highLatencyCache.append(urlKey)
+            } else {
+                lowLatencyCache.append(urlKey)
+            }
+            evictMemory(isHighLatency: usuallyUpdate)
+        } else if let existingEntry = cacheData[urlKey] {
+            // Check if already exists with data
             existingEntry.image = image
-            existingEntry.lastAccessDate = Date()
 
             // Update priority if changed
-            if existingEntry.priority != priority {
-                // Remove from old priority queue
-                if existingEntry.priority == .high {
-                    highPriorityKeys.removeAll { $0 == urlKey }
+            if existingEntry.usuallyUpdate != usuallyUpdate {
+                // Remove from old cache (reverse logic -> if change from not usually to usually, the cache need clean is low latency)
+                if usuallyUpdate {
+                    lowLatencyCache.removeAll { $0 == urlKey }
                 } else {
-                    lowPriorityKeys.removeAll { $0 == urlKey }
+                    highLatencyCache.removeAll { $0 == urlKey }
                 }
 
                 // Update priority
-                existingEntry.priority = priority
+                existingEntry.usuallyUpdate = usuallyUpdate
 
-                // Add to new priority queue
-                if priority == .high {
-                    highPriorityKeys.append(urlKey)
+                // Add to new unique set
+                if usuallyUpdate {
+                    highLatencyCache.append(urlKey)
                 } else {
-                    lowPriorityKeys.append(urlKey)
+                    lowLatencyCache.append(urlKey)
                 }
             } else {
                 // Just update LRU position (move to end)
-                if priority == .high {
-                    highPriorityKeys.removeAll { $0 == urlKey }
-                    highPriorityKeys.append(urlKey)
+                if usuallyUpdate {
+                    highLatencyCache.removeAll { $0 == urlKey }
+                    highLatencyCache.append(urlKey)
                 } else {
-                    lowPriorityKeys.removeAll { $0 == urlKey }
-                    lowPriorityKeys.append(urlKey)
+                    lowLatencyCache.removeAll { $0 == urlKey }
+                    lowLatencyCache.append(urlKey)
                 }
             }
-        } else {
-            // Create new entry
-            let entry = CacheEntry(image: image,
-                                   url: url,
-                                   priority: priority)
-            cacheData[urlKey] = entry
-
-            if priority == .high {
-                highPriorityKeys.append(urlKey)
-                await evictHighPriorityCacheIfNeeded()
-            } else {
-                lowPriorityKeys.append(urlKey)
-                evictLowPriorityCacheIfNeeded()
-            }
         }
     }
 
-    /// Set image as high priority (convenience method)
-    nonisolated func setImportantImage(_ image: UIImage, for url: URL) {
-        Task {
-            await setImage(image, for: url, priority: .high)
-        }
-    }
-
+    
+    // MARK: - Cache function
     /// Clear specific high priority image
-    func clearImportantCache(for url: URL) {
+    func clearCache(url: URL) {
         let urlKey = url.absoluteString
-        guard let entry = cacheData[urlKey], entry.priority == .high else { return }
-
-        cacheData.removeValue(forKey: urlKey)
-        highPriorityKeys.removeAll { $0 == urlKey }
-    }
-
-    /// Check if cache contains image for URL
-    func containsImage(for url: URL) -> Bool {
-        cacheData[url.absoluteString] != nil
-    }
-
-    /// Clear all low priority cache
-    func clearLowPriorityCache() {
-        for urlKey in lowPriorityKeys {
+        guard let entry = cacheData[urlKey] else { return }
+        
+        if entry.usuallyUpdate {
             cacheData.removeValue(forKey: urlKey)
+            highLatencyCache.removeAll { $0 == urlKey }
+        } else {
+            cacheData.removeValue(forKey: urlKey)
+            lowLatencyCache.removeAll { $0 == urlKey }
         }
-        lowPriorityKeys.removeAll()
+        return
+    }
+    
+    func clearCache(isHighLatency: Bool) {
+        if isHighLatency {
+            for key in highLatencyCache {
+                cacheData.removeValue(forKey: key)
+            }
+            highLatencyCache.removeAll()
+            
+        } else {
+            for key in lowLatencyCache {
+                cacheData.removeValue(forKey: key)
+            }
+            lowLatencyCache.removeAll()
+        }
+        return
     }
 
     /// Clear all cache (both high and low priority)
     func clearAllCache() {
         cacheData.removeAll()
-        highPriorityKeys.removeAll()
-        lowPriorityKeys.removeAll()
+        lowLatencyCache.removeAll()
+        highLatencyCache.removeAll()
     }
-
-    /// Hard reset (alias for clearAllCache)
-    func hardReset() {
-        clearAllCache()
-    }
-
+    
     /// Get high priority cache count
     func highPriorityCacheCount() -> Int {
-        highPriorityKeys.count
+        lowLatencyCache.count
     }
 
     /// Get low priority cache count
     func lowPriorityCacheCount() -> Int {
-        lowPriorityKeys.count
+        highLatencyCache.count
     }
 
     // MARK: - Private Methods
 
-    /// Evict least recently used high priority images if over limit
-    /// Notifies delegate for potential storage saving
-    private func evictHighPriorityCacheIfNeeded() async {
-        while highPriorityKeys.count > highPriorityLimit {
-            // Evict least recently used (first item)
-            let urlKey = highPriorityKeys.first!
-            let entry = cacheData[urlKey]
-
-            if let entry = entry {
-                // Notify delegate for saving to storage
-                let url = entry.url
-
-                // Call delegate on main thread if needed
-//                if let delegate = delegate {
-//                    Task { @MainActor in
-//                        delegate.cacheDidEvictImage(for: url, priority: .high)
-//                    }
-//                }
-            }
-
-            cacheData.removeValue(forKey: urlKey)
-            highPriorityKeys.removeFirst()
-        }
-    }
-
     /// Evict least recently used low priority images if over limit
     /// Low priority images are not saved to storage
-    private func evictLowPriorityCacheIfNeeded() {
-        while lowPriorityKeys.count > lowPriorityLimit {
-            // Evict least recently used (first item)
-            let urlKey = lowPriorityKeys.first!
-            cacheData.removeValue(forKey: urlKey)
-            lowPriorityKeys.removeFirst()
-            // No need to save to storage for low priority
-        }
-    }
-
-    /// Setup observer for memory warnings to clear cache based on configuration
-    private func setupMemoryWarningObserver() {
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didReceiveMemoryWarningNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            guard let self = self else { return }
-            Task {
-                // More aggressive cache clearing on memory warning
-                if self.config.clearAllOnMemoryWarning {
-                    await self.clearAllCache()
-                } else if self.config.clearLowPriorityOnMemoryWarning {
-                    await self.clearLowPriorityCache()
-                    // Also trim high priority cache to half
-                    while await self.highPriorityKeys.count > (self.highPriorityLimit / 2) {
-                        await self.evictHighPriorityCacheIfNeeded()
-                    }
-                }
+    private func evictMemory(isHighLatency: Bool) {
+        if isHighLatency {
+            while highLatencyCache.count > highLatencyLimit {
+                // Evict least recently used (first item)
+                let urlKey = highLatencyCache.first!
+                cacheData.removeValue(forKey: urlKey)
+                highLatencyCache.removeFirst()
+                // No need to save to storage for low priority
+            }
+        } else {
+            while lowLatencyCache.count > lowLatencyLimit {
+                // Evict least recently used (first item)
+                let urlKey = lowLatencyCache.first!
+                cacheData.removeValue(forKey: urlKey)
+                lowLatencyCache.removeFirst()
+                // No need to save to storage for low priority
             }
         }
+        
     }
 }

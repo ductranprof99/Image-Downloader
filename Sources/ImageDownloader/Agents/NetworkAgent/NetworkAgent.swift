@@ -23,14 +23,13 @@ internal actor NetworkAgent {
     /// This is more efficient than creating multiple sessions
     private static let sharedSession: URLSession = {
         let config = URLSessionConfiguration.default
-
         // Enable background network access (URLSession handles this properly)
         config.sessionSendsLaunchEvents = true
-        config.isDiscretionary = false  // Download even when battery is low
+        config.isDiscretionary = false
 
         // Reasonable defaults
         config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 300  // 5 minutes total
+        config.timeoutIntervalForResource = 300
         config.httpMaximumConnectionsPerHost = 6
         config.allowsCellularAccess = true
 
@@ -72,13 +71,12 @@ internal actor NetworkAgent {
     /// Download an image using completion handler (backwards compatible)
     nonisolated func downloadResource(
         at url: URL,
-        priority: ResourcePriority,
         progress: ((CGFloat) -> Void)? = nil,
         completion: ((UIImage?, Error?) -> Void)?
     ) {
         Task {
             do {
-                let image = try await downloadResource(at: url, priority: priority, progress: progress)
+                let image = try await downloadResource(at: url, progress: progress)
                 completion?(image, nil)
             } catch {
                 completion?(nil, error)

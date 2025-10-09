@@ -10,16 +10,29 @@ import Foundation
 import UIKit
 
 /// Internal cache entry tracking image, URL, access time, and priority
-class CacheEntry {
+class CacheEntry: Equatable {
+    var isDefault: Int
     var image: UIImage
     var url: URL
-    var lastAccessDate: Date
-    var priority: CachePriority
+    
+    /// Every cache can be replace, but put on high process cache make the update is lesser than normal
+    var usuallyUpdate: Bool
 
-    init(image: UIImage, url: URL, priority: CachePriority) {
+    init(
+        isDefault: Int = 0,
+        image: UIImage,
+        url: URL,
+        usuallyUpdate: Bool = false
+    ) {
+        self.isDefault = isDefault
         self.image = image
         self.url = url
-        self.priority = priority
-        self.lastAccessDate = Date()
+        self.usuallyUpdate = usuallyUpdate
     }
+    
+    static func ==(lhs: CacheEntry, rhs: CacheEntry) -> Bool {
+        return lhs.isDefault == rhs.isDefault && lhs.isDefault == 1
+    }
+    
+    static let `default`: CacheEntry = .init(isDefault: 1, image: UIImage(), url: URL(string: "")!)
 }
