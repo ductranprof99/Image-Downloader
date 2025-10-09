@@ -52,7 +52,6 @@ import Foundation
     }
 
     
-
     // MARK: - Convenience Properties for Direct Access
 
     // Network properties
@@ -86,22 +85,25 @@ import Foundation
         set { network.authenticationHandler = newValue }
     }
 
-    // Cache properties
-    @objc public var highCachePriority: Int {
-        get { cache.highPriorityLimit }
-        set { cache.highPriorityLimit = newValue }
+    /// Cache properties, remember, not set this variable when downloading, it can lead to un-exepted behavior
+    @objc public var highLatencyLimit: Int {
+        get { cache.highLatencyLimit }
+        set { cache.highLatencyLimit = newValue }
     }
 
-    @objc public var lowCachePriority: Int {
-        get { cache.lowPriorityLimit }
-        set { cache.lowPriorityLimit = newValue }
+    /// Cache properties, remember, not set this variable when downloading, it can lead to un-exepted behavior
+    @objc public var lowLatencyLimit: Int {
+        get { cache.lowLatencyLimit }
+        set { cache.lowLatencyLimit = newValue }
     }
 
+    /// Cache properties, remember, not set this variable when downloading, it can lead to un-exepted behavior
     @objc public var clearLowPriorityOnMemoryWarning: Bool {
         get { cache.clearLowPriorityOnMemoryWarning }
         set { cache.clearLowPriorityOnMemoryWarning = newValue }
     }
 
+    /// Cache properties, remember, not set this variable when downloading, it can lead to un-exepted behavior
     @objc public var clearAllOnMemoryWarning: Bool {
         get { cache.clearAllOnMemoryWarning }
         set { cache.clearAllOnMemoryWarning = newValue }
@@ -190,8 +192,8 @@ extension IDConfiguration {
         )
         
         let cacheConfig = IDCacheConfig(
-            highPriorityLimit: 100,
-            lowPriorityLimit: 200
+            highLatencyLimit: 100,
+            lowLatencyLimit: 200
         )
         
         return IDConfiguration(
@@ -212,8 +214,8 @@ extension IDConfiguration {
         )
         
         let cacheConfig = IDCacheConfig(
-            highPriorityLimit: 20,
-            lowPriorityLimit: 50
+            highLatencyLimit: 20,
+            lowLatencyLimit: 50
         )
         
         return IDConfiguration(
@@ -233,8 +235,8 @@ extension IDConfiguration {
         
         // Large cache for better hit rate
         let cacheConfig = IDCacheConfig(
-            highPriorityLimit: 100,
-            lowPriorityLimit: 200
+            highLatencyLimit: 100,
+            lowLatencyLimit: 200
         )
         
         // JPEG compression for faster disk I/O
@@ -261,8 +263,8 @@ extension IDConfiguration {
         
         // Large cache for better hit rate
         let cacheConfig = IDCacheConfig(
-            highPriorityLimit: 200,
-            lowPriorityLimit: 500,
+            highLatencyLimit: 200,
+            lowLatencyLimit: 500,
             clearLowPriorityOnMemoryWarning: false
         )
         

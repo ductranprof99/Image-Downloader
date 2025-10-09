@@ -51,10 +51,7 @@ public final class NetworkMonitor {
     public func startMonitoring() {
         guard !isMonitoring else { return }
 
-        monitor.pathUpdateHandler = { 
-            
-        }
-
+       
         monitor.start(queue: queue)
         isMonitoring = true
     }
