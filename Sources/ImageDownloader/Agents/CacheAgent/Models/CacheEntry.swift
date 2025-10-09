@@ -13,7 +13,7 @@ import UIKit
 class CacheEntry: Equatable {
     var isDefault: Int
     var image: UIImage
-    var url: URL
+    var url: URL?
     
     /// Every cache can be replace, but put on high process cache make the update is lesser than normal
     var usuallyUpdate: Bool
@@ -21,7 +21,7 @@ class CacheEntry: Equatable {
     init(
         isDefault: Int = 0,
         image: UIImage,
-        url: URL,
+        url: URL?,
         usuallyUpdate: Bool = false
     ) {
         self.isDefault = isDefault
@@ -34,5 +34,5 @@ class CacheEntry: Equatable {
         return lhs.isDefault == rhs.isDefault && lhs.isDefault == 1
     }
     
-    static let `default`: CacheEntry = .init(isDefault: 1, image: UIImage(), url: URL(string: "")!)
+    static let `default`: CacheEntry = .init(isDefault: 1, image: UIImage(), url: nil)
 }

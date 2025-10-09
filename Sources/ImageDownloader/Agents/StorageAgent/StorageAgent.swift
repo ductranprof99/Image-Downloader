@@ -138,6 +138,11 @@ extension StorageAgent {
         return totalSize
     }
     
+    func fileCount() -> Int {
+        let a = try? fileManager.contentsOfDirectory(atPath: storageURL.path).count
+        return a ?? 0
+    }
+    
     func removeAll() {
         do {
             try fileManager.removeItem(at: storageURL)

@@ -66,8 +66,10 @@ internal actor CacheAgent {
             lowLatencyCache.removeAll { $0 == urlKey }
             lowLatencyCache.append(urlKey)
         }
-
-        return .hit(entry.image)
+        guard let image = cacheData[urlKey]?.image else {
+            return .miss
+        }
+        return .hit(image)
     }
 
     /// Set image in cache with priority

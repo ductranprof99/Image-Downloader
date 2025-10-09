@@ -128,6 +128,15 @@ import Foundation
             }
         }
     }
+    
+    @objc public var isDebug: Bool {
+        get {
+            enableDebugLogging
+        }
+        set {
+            enableDebugLogging = newValue
+        }
+    }
 
     @objc public var pathProvider: AnyObject? {
         get { storage.pathProvider }

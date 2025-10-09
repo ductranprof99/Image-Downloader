@@ -12,7 +12,7 @@ import UIKit
 public class ImageDownloaderManager: NSObject {
     /// Singleton & Factory
     /// Shared singleton instance with default configuration
-    static let shared = ImageDownloaderManager()
+    @objc public static let shared = ImageDownloaderManager()
     
     /// Get or create a manager instance for a specific configuration
     /// - Parameter config: Custom configuration (nil = use shared instance)

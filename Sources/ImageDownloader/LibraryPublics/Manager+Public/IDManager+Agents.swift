@@ -22,7 +22,6 @@ extension ImageDownloaderManager {
 // MARK: - Request image
 extension ImageDownloaderManager {
     // MARK: - Cancel Requests
-    
     @objc public func cancelRequest(for url: URL, caller: AnyObject?) {
         // Note: caller parameter ignored in new actor-based implementation
         // All callbacks for the same URL share the same Task
@@ -69,27 +68,4 @@ extension ImageDownloaderManager {
     }
     
     
-}
-
-// MARK: - Statistics Simple debug
-extension ImageDownloaderManager {
-    public func cacheSizeHighLatency() async -> Int {
-        return await cacheAgent.highPriorityCacheCount()
-    }
-    
-    public func cacheSizeLowLatency() async -> Int {
-        return await cacheAgent.lowPriorityCacheCount()
-    }
-    
-    public func storageSizeBytes() -> UInt {
-        return storageAgent.currentStorageSize()
-    }
-
-    public func activeDownloadsCountAsync() async -> Int {
-        return networkAgent.activeDownloadCount
-    }
-
-    public func queuedDownloadsCount() async -> Int {
-        return networkAgent.pendingDownloadCount
-    }
 }

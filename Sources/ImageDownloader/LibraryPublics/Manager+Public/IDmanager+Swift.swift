@@ -8,6 +8,8 @@
 import Foundation
 import UIKit
 
+// TODO: add a stream method, because some one need to display progress
+
 extension ImageDownloaderManager {
 
     // MARK: - Pure Async/Await API (No DispatchQueue Mixing)
