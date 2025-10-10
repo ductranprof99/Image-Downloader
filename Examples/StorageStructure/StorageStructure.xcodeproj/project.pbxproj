@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		30ACF2062E98B740003FF91E /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 30ACF2052E98B740003FF91E /* ImageDownloader */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		309AF6D92E97C80600391A23 /* StorageStructure.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StorageStructure.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				30ACF2062E98B740003FF91E /* ImageDownloader in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = StorageStructure;
 			packageProductDependencies = (
+				30ACF2052E98B740003FF91E /* ImageDownloader */,
 			);
 			productName = StorageStructure;
 			productReference = 309AF6D92E97C80600391A23 /* StorageStructure.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 309AF6D02E97C80600391A23;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				30ACF2042E98B740003FF91E /* XCLocalSwiftPackageReference "../../../Image-Downloader" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 309AF6DA2E97C80600391A23 /* Products */;
 			projectDirPath = "";
@@ -320,6 +329,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		30ACF2042E98B740003FF91E /* XCLocalSwiftPackageReference "../../../Image-Downloader" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../Image-Downloader";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		30ACF2052E98B740003FF91E /* ImageDownloader */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ImageDownloader;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 309AF6D12E97C80600391A23 /* Project object */;
 }
