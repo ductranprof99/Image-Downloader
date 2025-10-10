@@ -101,32 +101,6 @@ struct ConfigurationView: View {
 
                     Divider()
 
-                    // Storage Info
-                    if let info = viewModel.storageInfo {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Storage Stats:")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            HStack {
-                                Text("Files:")
-                                Spacer()
-                                Text("\(info.fileCount)")
-                            }
-                            .font(.caption)
-
-                            HStack {
-                                Text("Total Size:")
-                                Spacer()
-                                Text(info.sizeString)
-                            }
-                            .font(.caption)
-                        }
-                        .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-
                     // Buttons Row 1
                     HStack(spacing: 12) {
                         Button(action: {

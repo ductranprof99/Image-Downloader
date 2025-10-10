@@ -10,53 +10,11 @@ import ImageDownloader
 
 struct FolderBrowserView: View {
     @ObservedObject var viewModel: StorageViewModel
-    @State private var currentPath: String? = nil
-    @State private var files: [FileItem] = []
-    @State private var pathComponents: [String] = []
+    @State private var treeNodes: [TreeNode] = []
 
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Breadcrumb navigation
-                if !pathComponents.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            Button(action: {
-                                navigateToRoot()
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "house.fill")
-                                    Text("Storage")
-                                }
-                                .font(.caption)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
-                            }
-
-                            ForEach(Array(pathComponents.enumerated()), id: \.offset) { index, component in
-                                Image(systemName: "chevron.right")
-                                    .font(.caption2)
-                                    .foregroundColor(.gray)
-
-                                Button(action: {
-                                    navigateTo(index: index)
-                                }) {
-                                    Text(component)
-                                        .font(.caption)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Color.blue.opacity(0.1))
-                                        .cornerRadius(8)
-                                }
-                            }
-                        }
-                        .padding()
-                    }
-                    .background(Color.gray.opacity(0.05))
-                }
-
                 // Toolbar
                 HStack(spacing: 12) {
                     Button(action: {
@@ -67,7 +25,7 @@ struct FolderBrowserView: View {
                     .buttonStyle(.borderedProminent)
 
                     Button(action: {
-                        refreshFiles()
+                        refreshTree()
                     }) {
                         Label("Refresh", systemImage: "arrow.clockwise")
                     }
@@ -85,14 +43,14 @@ struct FolderBrowserView: View {
 
                 Divider()
 
-                // File list
-                if files.isEmpty {
+                // Tree view
+                if treeNodes.isEmpty {
                     VStack(spacing: 20) {
                         Image(systemName: "folder.badge.questionmark")
                             .font(.system(size: 60))
                             .foregroundColor(.gray)
 
-                        Text("Folder is empty")
+                        Text("Storage is empty")
                             .font(.headline)
                             .foregroundColor(.secondary)
 
@@ -102,110 +60,108 @@ struct FolderBrowserView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    List {
-                        ForEach(files) { file in
-                            FileRowView(file: file) {
-                                if file.isDirectory {
-                                    navigateInto(folder: file)
-                                }
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(treeNodes) { node in
+                                TreeNodeView(node: node, level: 0, viewModel: viewModel)
                             }
                         }
+                        .padding()
                     }
-                    .listStyle(.plain)
                 }
             }
             .navigationTitle("Folder Browser")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if !pathComponents.isEmpty {
-                        Button(action: {
-                            navigateBack()
-                        }) {
-                            Image(systemName: "arrow.up")
-                        }
-                    }
-                }
-            }
         }
         .onAppear {
-            refreshFiles()
+            refreshTree()
         }
     }
 
-    private func refreshFiles() {
-        files = viewModel.listFiles(at: currentPath)
+    private func refreshTree() {
+        treeNodes = viewModel.buildFileTree()
         viewModel.updateStorageInfo()
-    }
-
-    private func navigateInto(folder: FileItem) {
-        currentPath = folder.relativePath
-        pathComponents.append(folder.name)
-        refreshFiles()
-    }
-
-    private func navigateBack() {
-        guard !pathComponents.isEmpty else { return }
-        pathComponents.removeLast()
-
-        if pathComponents.isEmpty {
-            currentPath = nil
-        } else {
-            currentPath = pathComponents.joined(separator: "/")
-        }
-        refreshFiles()
-    }
-
-    private func navigateToRoot() {
-        currentPath = nil
-        pathComponents.removeAll()
-        refreshFiles()
-    }
-
-    private func navigateTo(index: Int) {
-        pathComponents = Array(pathComponents.prefix(index + 1))
-        currentPath = pathComponents.joined(separator: "/")
-        refreshFiles()
     }
 }
 
-struct FileRowView: View {
-    let file: FileItem
-    let onTap: () -> Void
+struct TreeNodeView: View {
+    let node: TreeNode
+    let level: Int
+    let viewModel: StorageViewModel
+    @State private var isExpanded: Bool = true
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                Image(systemName: file.isDirectory ? "folder.fill" : "doc.fill")
-                    .font(.title3)
-                    .foregroundColor(file.isDirectory ? .blue : .green)
-                    .frame(width: 30)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(file.name)
-                        .font(.body)
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-
-                    if !file.isDirectory {
-                        Text(file.sizeString)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 0) {
+            // Node row
+            HStack(spacing: 8) {
+                // Indentation
+                if level > 0 {
+                    ForEach(0..<level, id: \.self) { _ in
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(width: 1)
+                            .padding(.leading, 12)
                     }
                 }
 
+                // Expand/collapse button for folders
+                if node.isDirectory && !node.children.isEmpty {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isExpanded.toggle()
+                        }
+                    }) {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .frame(width: 20)
+                    }
+                } else if node.isDirectory {
+                    Spacer()
+                        .frame(width: 20)
+                } else {
+                    Spacer()
+                        .frame(width: 20)
+                }
+
+                // Icon
+                Image(systemName: node.isDirectory ? "folder.fill" : "doc.fill")
+                    .font(.body)
+                    .foregroundColor(node.isDirectory ? .blue : .green)
+
+                // Name
+                Text(node.name)
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundColor(.primary)
+
                 Spacer()
 
-                if file.isDirectory {
-                    Image(systemName: "chevron.right")
+                // Size for files
+                if !node.isDirectory {
+                    Text(node.sizeString)
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .background(Color.clear)
             .contentShape(Rectangle())
+            .onTapGesture {
+                if node.isDirectory {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                }
+            }
+
+            // Children
+            if node.isDirectory && isExpanded {
+                ForEach(node.children) { child in
+                    TreeNodeView(node: child, level: level + 1, viewModel: viewModel)
+                }
+            }
         }
-        .buttonStyle(.plain)
     }
 }
 

@@ -25,6 +25,7 @@ final class StorageViewModel: ObservableObject {
     @Published var folderStructure: [FolderNode] = []
 
     private var customConfig: IDConfiguration?
+    private var manager: ImageDownloaderManager?
 
     let imageURLs = [
         "https://picsum.photos/id/299/4000/4000",
@@ -94,6 +95,11 @@ final class StorageViewModel: ObservableObject {
     }
 
     func updateStorageConfig() {
+        // Clear old storage structure with old files
+        if self.manager != nil {
+            self.manager?.clearStorage()
+        }
+
         customConfig = ConfigBuilder()
             .enableSaveToStorage()
             .identifierProvider(selectedIdentifier.provider)
@@ -106,7 +112,7 @@ final class StorageViewModel: ObservableObject {
 
     func updateStorageInfo() {
         let manager = ImageDownloaderManager.instance(for: customConfig)
-
+        self.manager = manager
         // Get storage stats
         let size = manager.storageSizeBytes()
         let count = manager.storedImageCount()
@@ -266,6 +272,49 @@ final class StorageViewModel: ObservableObject {
             return item1.name < item2.name
         }
     }
+
+    func buildFileTree() -> [TreeNode] {
+        let manager = ImageDownloaderManager.instance(for: customConfig)
+        let baseURL = manager.storagePathURL()
+        return buildTreeRecursive(at: baseURL, relativePath: nil)
+    }
+
+    private func buildTreeRecursive(at url: URL, relativePath: String?) -> [TreeNode] {
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: url,
+            includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        return contents.compactMap { itemURL -> TreeNode? in
+            let resourceValues = try? itemURL.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
+            let isDirectory = resourceValues?.isDirectory ?? false
+            let fileSize = resourceValues?.fileSize ?? 0
+            let name = itemURL.lastPathComponent
+            let itemRelativePath = relativePath.map { "\($0)/\(name)" } ?? name
+
+            var children: [TreeNode] = []
+            if isDirectory {
+                children = buildTreeRecursive(at: itemURL, relativePath: itemRelativePath)
+            }
+
+            return TreeNode(
+                name: name,
+                relativePath: itemRelativePath,
+                isDirectory: isDirectory,
+                size: fileSize,
+                url: itemURL,
+                children: children
+            )
+        }.sorted { node1, node2 in
+            if node1.isDirectory != node2.isDirectory {
+                return node1.isDirectory
+            }
+            return node1.name < node2.name
+        }
+    }
 }
 
 struct StorageInfo {
@@ -294,6 +343,25 @@ struct FileItem: Identifiable {
     let isDirectory: Bool
     let size: Int
     let url: URL
+
+    var sizeString: String {
+        let kb = Double(size) / 1024
+        if kb < 1024 {
+            return String(format: "%.1f KB", kb)
+        }
+        let mb = kb / 1024
+        return String(format: "%.2f MB", mb)
+    }
+}
+
+struct TreeNode: Identifiable {
+    let id = UUID()
+    let name: String
+    let relativePath: String
+    let isDirectory: Bool
+    let size: Int
+    let url: URL
+    let children: [TreeNode]
 
     var sizeString: String {
         let kb = Double(size) / 1024

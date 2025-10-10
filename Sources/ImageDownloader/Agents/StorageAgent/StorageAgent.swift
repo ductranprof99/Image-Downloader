@@ -91,13 +91,17 @@ extension StorageAgent {
     }
     
     func saveImage(_ image: UIImage, for url: URL) -> Bool {
+        // Ensure base storage directory exists
+        createStorageDirectoryIfNeeded()
+
+        // Create subdirectories if needed
         self.createSubdirectoriesIfNeeded(for: url)
-        
+
         let filePath = self.filePath(for: url)
         guard let imageData = self.compressionProvider.compress(image) else {
             return false
         }
-        
+
         return (try? imageData.write(to: URL(fileURLWithPath: filePath), options: .atomic)) != nil
     }
     
