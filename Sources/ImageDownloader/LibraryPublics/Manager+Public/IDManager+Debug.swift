@@ -10,7 +10,7 @@
 public extension ImageDownloaderManager {
     public func cacheSizeHighLatency() async -> Int {
         if configuration.isDebug {
-            return await cacheAgent.highPriorityCacheCount()
+            return await cacheAgent.highLatencyCacheCount()
         } else {
             return 0
         }
@@ -18,7 +18,7 @@ public extension ImageDownloaderManager {
     
     public func cacheSizeLowLatency() async -> Int {
         if configuration.isDebug {
-            return await cacheAgent.lowPriorityCacheCount()
+            return await cacheAgent.lowLatencyCacheCount()
         } else {
             return 0
         }

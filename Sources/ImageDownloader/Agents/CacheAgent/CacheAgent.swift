@@ -164,13 +164,13 @@ internal actor CacheAgent {
     }
     
     /// Get high priority cache count
-    func highPriorityCacheCount() -> Int {
-        lowLatencyCache.count
+    func highLatencyCacheCount() -> Int {
+        highLatencyCache.count
     }
 
     /// Get low priority cache count
-    func lowPriorityCacheCount() -> Int {
-        highLatencyCache.count
+    func lowLatencyCacheCount() -> Int {
+        lowLatencyCache.count
     }
 
     // MARK: - Private Methods

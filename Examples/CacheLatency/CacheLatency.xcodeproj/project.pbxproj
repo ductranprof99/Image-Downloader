@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3042E57C2E98F05D00CF42FC /* ImageDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = 3042E57B2E98F05D00CF42FC /* ImageDownloader */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		309AF6F02E97C82D00391A23 /* CacheLatency.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CacheLatency.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3042E57C2E98F05D00CF42FC /* ImageDownloader in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = CacheLatency;
 			packageProductDependencies = (
+				3042E57B2E98F05D00CF42FC /* ImageDownloader */,
 			);
 			productName = CacheLatency;
 			productReference = 309AF6F02E97C82D00391A23 /* CacheLatency.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 309AF6E72E97C82D00391A23;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3042E57A2E98F05D00CF42FC /* XCLocalSwiftPackageReference "../../../Image-Downloader" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 309AF6F12E97C82D00391A23 /* Products */;
 			projectDirPath = "";
@@ -320,6 +329,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		3042E57A2E98F05D00CF42FC /* XCLocalSwiftPackageReference "../../../Image-Downloader" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../Image-Downloader";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3042E57B2E98F05D00CF42FC /* ImageDownloader */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ImageDownloader;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 309AF6E82E97C82D00391A23 /* Project object */;
 }

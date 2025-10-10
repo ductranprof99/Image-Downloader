@@ -21,7 +21,7 @@ extension ImageDownloaderManager {
 
 // MARK: - Request image
 extension ImageDownloaderManager {
-    // MARK: - Cancel Requests
+    // MARK: - Network
     @objc public func cancelRequest(for url: URL, caller: AnyObject?) {
         // Note: caller parameter ignored in new actor-based implementation
         // All callbacks for the same URL share the same Task
@@ -37,7 +37,7 @@ extension ImageDownloaderManager {
         networkAgent.cancelDownload(for: url)
     }
     
-    // MARK: - Cache + Storage Management
+    // MARK: - Cache
     @objc public func clearCache(url: URL) {
         Task {
             await cacheAgent.clearCache(url: url)
@@ -60,6 +60,14 @@ extension ImageDownloaderManager {
             await cacheAgent.clearAllCache()
         }
         storageAgent.removeAll()
+    }
+    
+    @objc public func highLatencyCacheCount() async -> Int {
+        return await cacheAgent.highLatencyCacheCount()
+    }
+    
+    @objc public func lowLatencyCacheCount() async -> Int {
+        return await cacheAgent.lowLatencyCacheCount()
     }
     
     // MARK: - Storage
