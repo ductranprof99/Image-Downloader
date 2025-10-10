@@ -12,9 +12,35 @@ import ImageDownloader
 
 struct NetworkRequestDemoView: View {
 
-    @StateObject private var viewModel = NetworkCustomViewModel()
-    @State private var customURL: String = "https://picsum.photos/200/300"
-    @State private var showingURLInput = false
+    @StateObject private var viewModel = NetworkRequestViewModel()
+    let listImage = [
+                "https://picsum.photos/id/299/4000/4000",
+                "https://picsum.photos/id/871/4000/4000",
+                "https://picsum.photos/id/904/4000/4000",
+                "https://picsum.photos/id/680/4000/4000",
+                "https://picsum.photos/id/579/4000/4000",
+                "https://picsum.photos/id/460/4000/4000",
+                "https://picsum.photos/id/737/4000/4000",
+                "https://picsum.photos/id/181/4000/4000",
+                "https://picsum.photos/id/529/4000/4000",
+                "https://picsum.photos/id/94/4000/4000",
+                "https://picsum.photos/id/500/4000/4000",
+                "https://picsum.photos/id/423/4000/4000",
+                "https://picsum.photos/id/952/4000/4000",
+                "https://picsum.photos/id/798/4000/4000",
+                "https://picsum.photos/id/151/4000/4000",
+                "https://picsum.photos/id/42/4000/4000",
+                "https://picsum.photos/id/813/4000/4000",
+                "https://picsum.photos/id/187/4000/4000",
+                "https://picsum.photos/id/236/4000/4000",
+                "https://picsum.photos/id/33/4000/4000"
+            ]
+    
+    @State private var only4Item = false
+
+    var displayList: [String] {
+        only4Item ? Array(listImage.prefix(4)) : listImage
+    }
 
     var body: some View {
         NavigationView {
@@ -48,6 +74,8 @@ struct NetworkRequestDemoView: View {
                                 .onChange(of: viewModel.allowsCellular) {
                                     viewModel.updateNetworkConfig()
                                 }
+                            
+                            Toggle("Short list", isOn: $only4Item)
 
                             // Note: Background downloads handled automatically by URLSession
                             Text("Background Downloads: Enabled")
@@ -59,113 +87,13 @@ struct NetworkRequestDemoView: View {
                         .cornerRadius(12)
                     }
 
-                    // Retry Configuration
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Retry Policy")
-                            .font(.headline)
-
-                        VStack(spacing: 12) {
-                            HStack {
-                                Text("Max Retries")
-                                Spacer()
-                                Stepper("\(viewModel.maxRetries)", value: $viewModel.maxRetries, in: 0...10)
-                                    .onChange(of: viewModel.maxRetries) {
-                                        viewModel.updateNetworkConfig()
-                                    }
-                            }
-
-                            HStack {
-                                Text("Base Delay")
-                                Spacer()
-                                Stepper(String(format: "%.1fs", viewModel.baseDelay), value: $viewModel.baseDelay, in: 0.1...5.0, step: 0.5)
-                                    .onChange(of: viewModel.baseDelay) {
-                                        viewModel.updateNetworkConfig()
-                                    }
-                            }
-
-                            Toggle("Enable Logging", isOn: $viewModel.enableRetryLogging)
-                                .onChange(of: viewModel.enableRetryLogging) {
-                                    viewModel.updateNetworkConfig()
-                                }
-                        }
-                        .padding()
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(12)
-                    }
-
-                    // Custom Headers
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Custom Headers")
-                            .font(.headline)
-
-                        VStack(spacing: 8) {
-                            Toggle("Add User-Agent", isOn: $viewModel.addUserAgent)
-                                .onChange(of: viewModel.addUserAgent) {
-                                    viewModel.updateNetworkConfig()
-                                }
-
-                            Toggle("Add API Key", isOn: $viewModel.addAPIKey)
-                                .onChange(of: viewModel.addAPIKey) { 
-                                    viewModel.updateNetworkConfig()
-                                }
-
-                            if viewModel.addUserAgent || viewModel.addAPIKey {
-                                Text("Active Headers:")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-
-                                ForEach(viewModel.activeHeaders, id: \.key) { header in
-                                    HStack {
-                                        Text(header.key)
-                                            .font(.system(.caption, design: .monospaced))
-                                            .foregroundColor(.blue)
-                                        Spacer()
-                                        Text(header.value)
-                                            .font(.system(.caption2, design: .monospaced))
-                                            .foregroundColor(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(Color.purple.opacity(0.1))
-                        .cornerRadius(12)
-                    }
-
                     Divider()
 
-                    // Test Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Test Network Loading")
-                            .font(.headline)
-
+                    // Buttons Section
+                    HStack(spacing: 12) {
+                        // Load All Button
                         Button(action: {
-                            showingURLInput = true
-                        }) {
-                            Label("Enter Custom URL", systemImage: "link")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-
-                        // Current URL
-                        if !viewModel.currentTestURL.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Current URL:")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-
-                                Text(viewModel.currentTestURL)
-                                    .font(.system(.caption, design: .monospaced))
-                                    .foregroundColor(.blue)
-                                    .lineLimit(2)
-                            }
-                            .padding(.horizontal)
-                        }
-
-                        // Load button
-                        Button(action: {
-                            viewModel.loadMultipleImage()
+                            viewModel.loadMultipleImages(urls: displayList)
                         }) {
                             if viewModel.isLoading {
                                 HStack {
@@ -175,89 +103,99 @@ struct NetworkRequestDemoView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                             } else {
-                                Label("Load Image", systemImage: "arrow.down.circle")
+                                Label("Load All Images", systemImage: "arrow.down.circle")
                                     .frame(maxWidth: .infinity)
                             }
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(viewModel.isLoading || viewModel.currentTestURL.isEmpty)
+                        .disabled(viewModel.isLoading)
 
-                        // Progress
-                        if viewModel.isLoading {
-                            ProgressView(value: viewModel.progress)
-                                .progressViewStyle(LinearProgressViewStyle())
+                        // Reset Button
+                        Button(action: {
+                            viewModel.resetAll()
+                        }) {
+                            Label("Reset", systemImage: "arrow.counterclockwise")
+                                .frame(maxWidth: .infinity)
                         }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                    }
 
-                        // Result
-                        if let image = viewModel.loadedImage {
-                            Image(uiImage: image)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(maxHeight: 300)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.green, lineWidth: 2)
-                                )
-                        }
-
-                        // Stats
-                        if let stats = viewModel.loadStats {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text("Load Time:")
-                                        .font(.caption)
-                                    Spacer()
-                                    Text(stats.loadTimeString)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                HStack {
-                                    Text("Source:")
-                                        .font(.caption)
-                                    Spacer()
-                                    Text(stats.source)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                HStack {
-                                    Text("Retry Count:")
-                                        .font(.caption)
-                                    Spacer()
-                                    Text("\(stats.retryCount)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .padding()
-                            .background(Color.green.opacity(0.1))
-                            .cornerRadius(8)
-                        }
-
-                        // Error
-                        if let error = viewModel.loadError {
-                            Text(error)
-                                .font(.caption)
-                                .foregroundColor(.red)
-                                .padding()
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(8)
+                    // Images List
+                    VStack(spacing: 16) {
+                        ForEach(displayList, id: \.self) { urlString in
+                            ImageRowView(
+                                urlString: urlString,
+                                image: viewModel.loadedImages[urlString],
+                                progress: viewModel.imageProgress[urlString] ?? 0.0,
+                                error: viewModel.imageErrors[urlString]
+                            )
                         }
                     }
                 }
                 .padding()
+                
+                
             }
-            .navigationTitle("Network Custom")
+            .navigationTitle("Multiple Images")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingURLInput) {
-                URLInputSheet(url: $customURL) {
-                    viewModel.currentTestURL = customURL
-                    showingURLInput = false
+        }
+    }
+}
+
+// MARK: - Image Row View
+struct ImageRowView: View {
+    let urlString: String
+    let image: UIImage?
+    let progress: Double
+    let error: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(urlString)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(.blue)
+                    .lineLimit(1)
+                Spacer()
+            }
+
+            if let image = image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxHeight: 200)
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.green, lineWidth: 2)
+                    )
+            } else if let error = error {
+                Text("Error: \(error)")
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(8)
+            } else {
+                VStack(spacing: 8) {
+                    ProgressView(value: progress)
+                        .progressViewStyle(LinearProgressViewStyle())
+                    Text("\(Int(progress * 100))%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(8)
             }
         }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(radius: 2)
     }
 }
 

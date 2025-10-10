@@ -98,58 +98,43 @@ extension NetworkCustomViewModel {
         updateNetworkConfig()
         
         let manager = ImageDownloaderManager.instance(for: customConfig)
-        
+
         manager.requestImage(
             at: url,
             caller: self,
-            progress: { [weak self] progress,speed,bytes in
+            progress: { [weak self] progress, speed, bytes in
                 Task { @MainActor in
-                    self?.progress = progress
-                    self?.speed = speed
-                    self?.downloadBytes = bytes
+                    self?.progress = Double(progress)
+                    self?.speed = Double(speed)
+                    self?.downloadBytes = Double(bytes)
+                }
+            },
+            completion: { [weak self] image, error, fromCache, fromStorage in
+                Task { @MainActor in
+                    guard let self = self else { return }
+
+                    self.isLoading = false
+
+                    if let image = image {
+                        self.loadedImage = image
+
+                        let loadTime = Date().timeIntervalSince(self.loadStartTime ?? Date())
+                        let source = fromCache ? "Cache" : (fromStorage ? "Storage" : "Network")
+
+                        self.loadStats = LoadStats(
+                            loadTime: loadTime,
+                            speed: self.speed,
+                            size: self.downloadBytes,
+                            source: source,
+                            retryCount: 0
+                        )
+                    } else if let error = error {
+                        self.loadError = error.localizedDescription
+                    }
                 }
             }
         )
-        
-        //        manager.requestImage(
-        //            at: url,
-        //            priority: .high,
-        //            shouldSaveToStorage: true,
-        //            progress: { [weak self] progressValue in
-        //                DispatchQueue.main.async {
-        //                    self?.progress = progressValue
-        //                }
-        //            },
-        //            completion: { [weak self] image, error, fromCache, fromStorage in
-        //                DispatchQueue.main.async {
-        //                    guard let self = self else { return }
-        //
-        //                    self.isLoading = false
-        //
-        //                    if let image = image {
-        //                        self.loadedImage = image
-        //
-        //                        let loadTime = Date().timeIntervalSince(self.loadStartTime ?? Date())
-        //                        let source = fromCache ? "Cache" : (fromStorage ? "Storage" : "Network")
-        //
-        //                        self.loadStats = LoadStats(
-        //                            loadTime: loadTime,
-        //                            source: source,
-        //                            retryCount: 0 // We don't track this in the callback
-        //                        )
-        //                    } else if let error = error {
-        //                        self.loadError = error.localizedDescription
-        //                    }
-        //                }
-        //            }
-        //        )
     }
 }
 
 
-// MARK: - Second Tab
-extension NetworkCustomViewModel {
-    func loadMultipleImage() {
-        
-    }
-}

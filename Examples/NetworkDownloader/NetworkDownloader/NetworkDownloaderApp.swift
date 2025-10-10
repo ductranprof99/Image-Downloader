@@ -11,7 +11,17 @@ import SwiftUI
 struct NetworkDownloaderApp: App {
     var body: some Scene {
         WindowGroup {
-            NetworkCustomDemoView()
+            TabView {
+                NetworkCustomDemoView()
+                    .tabItem {
+                        Label("Download Setting", systemImage: "network")
+                    }
+                
+                NetworkRequestDemoView()
+                    .tabItem {
+                        Label("Multi Load", systemImage: "photo.on.rectangle")
+                    }
+            }
         }
     }
 }
