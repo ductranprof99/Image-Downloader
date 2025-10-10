@@ -63,14 +63,16 @@ final class StorageViewModel: ObservableObject {
 
     enum PathType: String, CaseIterable {
         case flat = "Flat"
-        case domain = "Domain"
-        case date = "Date"
+        case customDomain = "Custom Domain"
+        case customDateTime = "Custom Date/Time"
+        case customIDRange = "ID Range (low/mid/high)"
 
         var provider: StoragePathProvider {
             switch self {
             case .flat: return FlatHierarchicalPathProvider()
-            case .domain: return DomainHierarchicalPathProvider()
-            case .date: return DateHierarchicalPathProvider()
+            case .customDomain: return CustomDomainPathProvider()
+            case .customDateTime: return CustomDateTimePathProvider()
+            case .customIDRange: return CustomIDRangePathProvider()
             }
         }
     }
@@ -128,6 +130,11 @@ final class StorageViewModel: ObservableObject {
             let relativePath = selectedPath.provider.path(for: url, identifier: identifier)
             let directories = selectedPath.provider.directoryStructure(for: url)
 
+            print("📁 URL: \(urlString)")
+            print("📁 Identifier: \(identifier)")
+            print("📁 Relative path: \(relativePath)")
+            print("📁 Directories: \(directories)")
+
             if directories.isEmpty {
                 // Flat structure
                 structure["root", default: []].append(relativePath)
@@ -137,6 +144,8 @@ final class StorageViewModel: ObservableObject {
                 structure[folder, default: []].append(relativePath.components(separatedBy: "/").last ?? relativePath)
             }
         }
+
+        print("📁 Final structure: \(structure)")
 
         // Convert to FolderNode array
         folderStructure = structure.map { key, files in
@@ -162,26 +171,26 @@ final class StorageViewModel: ObservableObject {
             manager.requestImage(
                 at: url,
                 caller: self,
-                progress: { [weak self] progress, speed, bytes in
+                progress: { [weak self, urlString] progress, speed, bytes in
                     Task { @MainActor in
                         self?.imageProgress[urlString] = Double(progress)
                     }
                 },
-                completion: { [weak self] image, error, fromCache, fromStorage in
+                completion: { [weak self, urlString] image, error, fromCache, fromStorage in
                     Task { @MainActor in
+                        guard let self = self else { return }
+
                         if let image = image {
-                            self?.loadedImages[urlString] = image
-                            self?.imageProgress[urlString] = 1.0
+                            self.loadedImages[urlString] = image
+                            self.imageProgress[urlString] = 1.0
                         }
 
                         // Check if all done
-                        if let self = self {
-                            let totalImages = self.imageURLs.count
-                            let completedImages = self.loadedImages.count
-                            if completedImages >= totalImages {
-                                self.isLoading = false
-                                self.updateStorageInfo()
-                            }
+                        let totalImages = self.imageURLs.count
+                        let completedImages = self.loadedImages.count
+                        if completedImages >= totalImages {
+                            self.isLoading = false
+                            self.updateStorageInfo()
                         }
                     }
                 }
@@ -195,6 +204,67 @@ final class StorageViewModel: ObservableObject {
         loadedImages.removeAll()
         imageProgress.removeAll()
         updateStorageInfo()
+    }
+
+    func openStorageFolder() {
+        let manager = ImageDownloaderManager.instance(for: customConfig)
+        let storagePath = manager.storagePath()
+
+        #if os(macOS)
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: storagePath)
+        #else
+        // For iOS simulator, print path to console
+        print("Storage folder path: \(storagePath)")
+        // You can also copy to pasteboard
+        UIPasteboard.general.string = storagePath
+        #endif
+    }
+
+    func getStoragePath() -> String {
+        let manager = ImageDownloaderManager.instance(for: customConfig)
+        return manager.storagePath()
+    }
+
+    func getStorageURL() -> URL {
+        let manager = ImageDownloaderManager.instance(for: customConfig)
+        return manager.storagePathURL()
+    }
+
+    func listFiles(at path: String? = nil) -> [FileItem] {
+        let manager = ImageDownloaderManager.instance(for: customConfig)
+        let baseURL = manager.storagePathURL()
+
+        let directoryURL = path.map { baseURL.appendingPathComponent($0) } ?? baseURL
+
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        return contents.compactMap { url -> FileItem? in
+            let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
+            let isDirectory = resourceValues?.isDirectory ?? false
+            let fileSize = resourceValues?.fileSize ?? 0
+
+            let relativePath = path.map { "\($0)/\(url.lastPathComponent)" } ?? url.lastPathComponent
+
+            return FileItem(
+                name: url.lastPathComponent,
+                relativePath: relativePath,
+                isDirectory: isDirectory,
+                size: fileSize,
+                url: url
+            )
+        }.sorted { item1, item2 in
+            // Folders first, then alphabetically
+            if item1.isDirectory != item2.isDirectory {
+                return item1.isDirectory
+            }
+            return item1.name < item2.name
+        }
     }
 }
 
@@ -215,4 +285,22 @@ struct FolderNode: Identifiable {
     let id = UUID()
     let name: String
     let files: [String]
+}
+
+struct FileItem: Identifiable {
+    let id = UUID()
+    let name: String
+    let relativePath: String
+    let isDirectory: Bool
+    let size: Int
+    let url: URL
+
+    var sizeString: String {
+        let kb = Double(size) / 1024
+        if kb < 1024 {
+            return String(format: "%.1f KB", kb)
+        }
+        let mb = kb / 1024
+        return String(format: "%.2f MB", mb)
+    }
 }

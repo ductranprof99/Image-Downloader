@@ -68,27 +68,27 @@ final class NetworkRequestViewModel: ObservableObject {
             manager.requestImage(
                 at: url,
                 caller: self,
-                progress: { [weak self] progress, speed, bytes in
+                progress: { [weak self, urlString] progress, speed, bytes in
                     Task { @MainActor in
                         self?.imageProgress[urlString] = Double(progress)
                     }
                 },
-                completion: { [weak self] image, error, fromCache, fromStorage in
+                completion: { [weak self, urlString] image, error, fromCache, fromStorage in
                     Task { @MainActor in
+                        guard let self = self else { return }
+
                         if let image = image {
-                            self?.loadedImages[urlString] = image
-                            self?.imageProgress[urlString] = 1.0
+                            self.loadedImages[urlString] = image
+                            self.imageProgress[urlString] = 1.0
                         } else if let error = error {
-                            self?.imageErrors[urlString] = error.localizedDescription
+                            self.imageErrors[urlString] = error.localizedDescription
                         }
 
                         // Check if all images are done
-                        if let self = self {
-                            let totalImages = urls.count
-                            let completedImages = self.loadedImages.count + self.imageErrors.count
-                            if completedImages >= totalImages {
-                                self.isLoading = false
-                            }
+                        let totalImages = urls.count
+                        let completedImages = self.loadedImages.count + self.imageErrors.count
+                        if completedImages >= totalImages {
+                            self.isLoading = false
                         }
                     }
                 }

@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  ConfigurationView.swift
 //  StorageStructure
 //
 //  Created by ductd on 9/10/25.
@@ -8,26 +8,8 @@
 import SwiftUI
 import ImageDownloader
 
-struct ContentView: View {
-    @StateObject private var viewModel = StorageViewModel()
-
-    var body: some View {
-        TabView {
-            ConfigurationView(viewModel: viewModel)
-                .tabItem {
-                    Label("Configuration", systemImage: "gearshape")
-                }
-
-            FolderBrowserView(viewModel: viewModel)
-                .tabItem {
-                    Label("Folder Browser", systemImage: "folder")
-                }
-        }
-    }
-}
-
-struct OldContentView: View {
-    @StateObject private var viewModel = StorageViewModel()
+struct ConfigurationView: View {
+    @ObservedObject var viewModel: StorageViewModel
 
     var body: some View {
         NavigationView {
@@ -119,49 +101,6 @@ struct OldContentView: View {
 
                     Divider()
 
-                    // Folder Structure
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Storage Structure")
-                            .font(.headline)
-
-                        if viewModel.folderStructure.isEmpty {
-                            Text("No files in storage")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(8)
-                        } else {
-                            ForEach(viewModel.folderStructure) { folder in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Image(systemName: folder.name == "root" ? "doc.fill" : "folder.fill")
-                                            .foregroundColor(folder.name == "root" ? .gray : .blue)
-                                        Text(folder.name == "root" ? "/ (Flat)" : folder.name)
-                                            .font(.system(.caption, design: .monospaced))
-                                            .fontWeight(.semibold)
-                                    }
-
-                                    ForEach(folder.files, id: \.self) { file in
-                                        HStack {
-                                            Image(systemName: "doc.text.fill")
-                                                .foregroundColor(.green)
-                                                .font(.caption2)
-                                            Text(file)
-                                                .font(.system(.caption2, design: .monospaced))
-                                                .lineLimit(1)
-                                        }
-                                        .padding(.leading, 20)
-                                    }
-                                }
-                                .padding()
-                                .background(Color.purple.opacity(0.1))
-                                .cornerRadius(8)
-                            }
-                        }
-                    }
-
                     // Storage Info
                     if let info = viewModel.storageInfo {
                         VStack(alignment: .leading, spacing: 8) {
@@ -218,43 +157,6 @@ struct OldContentView: View {
                         .tint(.red)
                     }
 
-                    // Buttons Row 2
-                    HStack(spacing: 12) {
-                        Button(action: {
-                            viewModel.openStorageFolder()
-                        }) {
-                            Label("Open Folder", systemImage: "folder")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.blue)
-
-                        Button(action: {
-                            UIPasteboard.general.string = viewModel.getStoragePath()
-                        }) {
-                            Label("Copy Path", systemImage: "doc.on.doc")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.gray)
-                    }
-
-                    // Storage Path Display
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Storage Path:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Text(viewModel.getStoragePath())
-                            .font(.system(.caption2, design: .monospaced))
-                            .foregroundColor(.blue)
-                            .lineLimit(2)
-                            .padding(8)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
-                    }
-
                     // Images Grid
                     if !viewModel.loadedImages.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
@@ -309,15 +211,12 @@ struct OldContentView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Storage Structure")
+            .navigationTitle("Configuration")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                viewModel.updateStorageConfig()
-            }
         }
     }
 }
 
 #Preview {
-    ContentView()
+    ConfigurationView(viewModel: StorageViewModel())
 }

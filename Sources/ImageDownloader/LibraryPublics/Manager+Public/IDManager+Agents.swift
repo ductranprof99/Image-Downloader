@@ -55,11 +55,6 @@ extension ImageDownloaderManager {
             await cacheAgent.clearAllCache()
         }
     }
-    
-    public func clearStorage() {
-        storageAgent.removeAll()
-    }
-    
     @objc public func hardReset() {
         Task {
             await cacheAgent.clearAllCache()
@@ -67,5 +62,21 @@ extension ImageDownloaderManager {
         storageAgent.removeAll()
     }
     
+    // MARK: - Storage
+    @objc public func storagePath() -> String {
+        return storageAgent.storagePath()
+    }
     
+    @objc public func storagePathURL() -> URL {
+        return storageAgent.storageURL()
+    }
+    
+    @objc public func clearStorage() {
+        storageAgent.removeAll()
+    }
+    
+    @objc public func filePath(for url: URL) -> String? {
+        return storageAgent.filePath(for: url)
+    }
+
 }

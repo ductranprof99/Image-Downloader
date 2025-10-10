@@ -11,9 +11,8 @@ import UIKit
 // MARK: - Private + Init
 final class StorageAgent {
     
-    private var diskCacheSizeLimit: UInt = 0 // bytes (0 = unlimited)
-    private let fileManager: FileManager
-    private let storageURL: URL
+    private let _fileManager: FileManager
+    private let _storageURL: URL
     
     // Customization providers
     private let identifierProvider: ResourceIdentifierProvider
@@ -24,12 +23,12 @@ final class StorageAgent {
     init(
         config: StorageConfig
     ) {
-        self.fileManager = FileManager.default
+        self._fileManager = FileManager.default
         
         if let storagePath = config.storagePath {
-            self.storageURL = URL(fileURLWithPath: storagePath)
+            self._storageURL = URL(fileURLWithPath: storagePath)
         } else {
-            self.storageURL = Self.defaultStorageDirectory()
+            self._storageURL = Self.defaultStorageDirectory()
         }
         
         // Use defaults for backward compatibility
@@ -49,8 +48,8 @@ final class StorageAgent {
     }
     
     private func createStorageDirectoryIfNeeded() {
-        if !fileManager.fileExists(atPath: storageURL.path) {
-            try? fileManager.createDirectory(at: storageURL, withIntermediateDirectories: true)
+        if !_fileManager.fileExists(atPath: _storageURL.path) {
+            try? _fileManager.createDirectory(at: _storageURL, withIntermediateDirectories: true)
         }
     }
     
@@ -58,13 +57,13 @@ final class StorageAgent {
         let subdirectories = pathProvider.directoryStructure(for: url)
         guard !subdirectories.isEmpty else { return }
         
-        var directoryURL = storageURL
+        var directoryURL = _storageURL
         for subdirectory in subdirectories {
             directoryURL = directoryURL.appendingPathComponent(subdirectory)
         }
         
-        if !fileManager.fileExists(atPath: directoryURL.path) {
-            try? fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+        if !_fileManager.fileExists(atPath: directoryURL.path) {
+            try? _fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
         }
     }
 }
@@ -75,14 +74,14 @@ extension StorageAgent {
     /// Check if image exists in storage (synchronous)
     func hasImage(for url: URL) -> Bool {
         let filePath = self.filePath(for: url)
-        return fileManager.fileExists(atPath: filePath)
+        return _fileManager.fileExists(atPath: filePath)
     }
     
     func image(for url: URL) -> UIImage? {
         let filePath = self.filePath(for: url)
         var image: UIImage? = nil
         
-        if self.fileManager.fileExists(atPath: filePath) {
+        if self._fileManager.fileExists(atPath: filePath) {
             if let imageData = try? Data(contentsOf: URL(fileURLWithPath: filePath)) {
                 image = self.compressionProvider.decompress(imageData)
             }
@@ -106,30 +105,36 @@ extension StorageAgent {
         let filePath = self.filePath(for: url)
         var success = false
         
-        if self.fileManager.fileExists(atPath: filePath) {
-            success = (try? self.fileManager.removeItem(atPath: filePath)) != nil
+        if self._fileManager.fileExists(atPath: filePath) {
+            success = (try? self._fileManager.removeItem(atPath: filePath)) != nil
         }
         return success
     }
     
-    
-    
     func filePath(for url: URL) -> String {
         let identifier = identifierProvider.identifier(for: url)
         let relativePath = pathProvider.path(for: url, identifier: identifier)
-        return storageURL.appendingPathComponent(relativePath).path
+        return _storageURL.appendingPathComponent(relativePath).path
+    }
+    
+    func storagePath() -> String {
+        return _storageURL.path
+    }
+    
+    func storageURL() -> URL {
+        return _storageURL
     }
     
     func currentStorageSize() -> UInt {
         var totalSize: UInt = 0
         
-        guard let files = try? fileManager.contentsOfDirectory(atPath: storageURL.path) else {
+        guard let files = try? _fileManager.contentsOfDirectory(atPath: _storageURL.path) else {
             return totalSize
         }
         
         for file in files {
-            let filePath = storageURL.appendingPathComponent(file).path
-            if let attributes = try? fileManager.attributesOfItem(atPath: filePath),
+            let filePath = _storageURL.appendingPathComponent(file).path
+            if let attributes = try? _fileManager.attributesOfItem(atPath: filePath),
                let fileSize = attributes[.size] as? UInt {
                 totalSize += fileSize
             }
@@ -139,13 +144,13 @@ extension StorageAgent {
     }
     
     func fileCount() -> Int {
-        let a = try? fileManager.contentsOfDirectory(atPath: storageURL.path).count
+        let a = try? _fileManager.contentsOfDirectory(atPath: _storageURL.path).count
         return a ?? 0
     }
     
     func removeAll() {
         do {
-            try fileManager.removeItem(at: storageURL)
+            try _fileManager.removeItem(at: _storageURL)
         } catch {
             print("Error removing all files from storage: \(error)")
         }
