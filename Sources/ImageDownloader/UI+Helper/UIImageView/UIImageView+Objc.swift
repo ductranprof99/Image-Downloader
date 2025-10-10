@@ -64,19 +64,20 @@ extension UIImageView {
 
     /// Objective-C compatible method to cancel loading
     @objc public func cancelDownloading(isSelf: Bool = true) {
-        guard let url = currentLoadingURL else { return }
+        guard let url = currentLoadingURL,
+              let manager = currentManager else { return }
+
         if isSelf {
-            downloadManager?.cancelAllRequests(for: url)
+            manager.cancelAllRequests(for: url)
         } else {
-            downloadManager?.cancelRequest(for: url, caller: self)
+            manager.cancelRequest(for: url, caller: self)
         }
-        
     }
 }
 
 extension UIImageView {
     private static var currentURLKey: UInt8 = 1
-    private static var managerKey: UInt8 = 2
+    private static var currentManagerKey: UInt8 = 2
 
     // MARK: - Private Properties
     private var currentLoadingURL: URL? {
@@ -92,17 +93,19 @@ extension UIImageView {
             )
         }
     }
-    
-    private var downloadManager: ImageDownloaderManager? {
+
+    // Store the manager that's handling the current request
+    // This allows proper cancellation even when using different managers
+    private var currentManager: ImageDownloaderManager? {
         get {
-            return objc_getAssociatedObject(self, &Self.managerKey) as? ImageDownloaderManager
+            return objc_getAssociatedObject(self, &Self.currentManagerKey) as? ImageDownloaderManager
         }
         set {
             objc_setAssociatedObject(
                 self,
-                &Self.managerKey,
+                &Self.currentManagerKey,
                 newValue,
-                .OBJC_ASSOCIATION_COPY_NONATOMIC
+                .OBJC_ASSOCIATION_RETAIN_NONATOMIC
             )
         }
     }
@@ -130,10 +133,12 @@ extension UIImageView {
         onProgress: ((CGFloat, CGFloat, CGFloat) -> Void)? = nil,
         onCompletion: ((UIImage?, Error?, Bool, Bool) -> Void)? = nil
     ) {
-        let newManager = config == nil ? ImageDownloaderManager.shared : ImageDownloaderManager.instance(for: config)
-        downloadManager = manager ?? newManager
-        // Store current URL
+        // Get the manager instance (or use provided one)
+        let downloadManager = manager ?? (config == nil ? ImageDownloaderManager.shared : ImageDownloaderManager.instance(for: config))
+
+        // Store current URL and manager for cancellation
         currentLoadingURL = url
+        currentManager = downloadManager
 
         // Show placeholder immediately
         if let placeholder = placeholder {
@@ -141,7 +146,7 @@ extension UIImageView {
         }
 
         // Request image
-        downloadManager?.requestImage(
+        downloadManager.requestImage(
             at: url,
             caller: self,
             downloadPriority: priority,
