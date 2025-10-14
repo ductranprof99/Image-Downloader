@@ -48,34 +48,29 @@ sequenceDiagram
         Note over Cache: Creates placeholder entry<br/>to mark download in progress
         deactivate Cache
 
-        alt Storage Enabled
+        alt Storage Enabled & HIT
             Manager->>Storage: image(for: url)
             activate Storage
+            Storage-->>Manager: UIImage
+            deactivate Storage
+            Manager->>Cache: await setImage(image, url, isHighLatency)
+            activate Cache
+            Cache-->>Cache: Add to LRU queue<br/>(high or low latency)
+            Cache-->>Manager: Success
+            deactivate Cache
+            Manager->>UI: completion(image, nil, fromCache: false, fromStorage: true)
+            UI->>User: Display Image
 
-            alt Storage HIT
-                Storage-->>Manager: UIImage
-                deactivate Storage
-                Manager->>Cache: await setImage(image, url, isHighLatency)
-                activate Cache
-                Cache-->>Cache: Add to LRU queue<br/>(high or low latency)
-                Cache-->>Manager: Success
-                deactivate Cache
-                Manager->>UI: completion(image, nil, fromCache: false, fromStorage: true)
-                UI->>User: Display Image
-
-            else Storage MISS
+        else Storage MISS or Disabled - Download from Network
+            alt Storage Enabled
+                Manager->>Storage: image(for: url)
+                activate Storage
                 Storage-->>Manager: nil
                 deactivate Storage
-                Note over Manager: Need to download from network
-                Manager->>Manager: downloadFromNetworkThenUpdate()
             end
 
-        else Storage Disabled
-            Manager->>Manager: downloadFromNetworkThenUpdate()
-        end
-
-        Note over Manager: Download from Network Flow
-        Manager->>Network: downloadData(url, priority, progress, completion)
+            Note over Manager: Download from Network Flow
+            Manager->>Network: downloadData(url, priority, progress, completion)
         activate Network
 
         Network->>Network: isolationQueue.async
@@ -190,6 +185,7 @@ sequenceDiagram
                 end
                 deactivate Registry
             end
+        end
         end
     end
 

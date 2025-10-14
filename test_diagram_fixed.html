@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ImageDownloader Sequence Diagram</title>
+    <title>ImageDownloader Sequence Diagram - FIXED</title>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
         mermaid.initialize({
             startOnLoad: true,
             theme: 'default',
             securityLevel: 'loose',
+            logLevel: 'info'
         });
     </script>
     <style>
@@ -23,15 +24,25 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 100%;
+            overflow-x: auto;
         }
         h1 {
             color: #333;
         }
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>ImageDownloader Library - Complete Sequence Diagram</h1>
+        <h1>ImageDownloader Library - Complete Sequence Diagram (FIXED)</h1>
+        <div id="status">Loading diagram...</div>
         <div class="mermaid">
 sequenceDiagram
     actor User
@@ -78,34 +89,29 @@ sequenceDiagram
         Note over Cache: Creates placeholder entry<br/>to mark download in progress
         deactivate Cache
 
-        alt Storage Enabled
+        alt Storage Enabled & HIT
             Manager->>Storage: image(for: url)
             activate Storage
+            Storage-->>Manager: UIImage
+            deactivate Storage
+            Manager->>Cache: await setImage(image, url, isHighLatency)
+            activate Cache
+            Cache-->>Cache: Add to LRU queue<br/>(high or low latency)
+            Cache-->>Manager: Success
+            deactivate Cache
+            Manager->>UI: completion(image, nil, fromCache: false, fromStorage: true)
+            UI->>User: Display Image
 
-            alt Storage HIT
-                Storage-->>Manager: UIImage
-                deactivate Storage
-                Manager->>Cache: await setImage(image, url, isHighLatency)
-                activate Cache
-                Cache-->>Cache: Add to LRU queue<br/>(high or low latency)
-                Cache-->>Manager: Success
-                deactivate Cache
-                Manager->>UI: completion(image, nil, fromCache: false, fromStorage: true)
-                UI->>User: Display Image
-
-            else Storage MISS
+        else Storage MISS or Disabled - Download from Network
+            alt Storage Enabled
+                Manager->>Storage: image(for: url)
+                activate Storage
                 Storage-->>Manager: nil
                 deactivate Storage
-                Note over Manager: Need to download from network
-                Manager->>Manager: downloadFromNetworkThenUpdate()
             end
 
-        else Storage Disabled
-            Manager->>Manager: downloadFromNetworkThenUpdate()
-        end
-
-        Note over Manager: Download from Network Flow
-        Manager->>Network: downloadData(url, priority, progress, completion)
+            Note over Manager: Download from Network Flow
+            Manager->>Network: downloadData(url, priority, progress, completion)
         activate Network
 
         Network->>Network: isolationQueue.async
@@ -221,6 +227,7 @@ sequenceDiagram
                 deactivate Registry
             end
         end
+        end
     end
 
     Note over Registry: Cleanup Timer (every 30s)
@@ -228,5 +235,28 @@ sequenceDiagram
     Note over Registry: Remove entries where<br/>caller.value == nil
         </div>
     </div>
+
+    <script>
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const status = document.getElementById('status');
+                const diagram = document.querySelector('.mermaid svg');
+                if (diagram) {
+                    status.textContent = '✓ Diagram rendered successfully!';
+                    status.className = 'success';
+                } else {
+                    status.textContent = '✗ Diagram failed to render. Check console for errors.';
+                    status.className = 'error';
+                }
+            }, 2000);
+        });
+
+        window.addEventListener('error', (e) => {
+            const status = document.getElementById('status');
+            status.textContent = '✗ Error: ' + e.message;
+            status.className = 'error';
+            console.error('Error details:', e);
+        });
+    </script>
 </body>
 </html>
