@@ -71,121 +71,121 @@ sequenceDiagram
 
             Note over Manager: Download from Network Flow
             Manager->>Network: downloadData(url, priority, progress, completion)
-        activate Network
+            activate Network
 
-        Network->>Network: isolationQueue.async
-        Note over Network: Serial queue ensures<br/>thread-safe state access
+            Network->>Network: isolationQueue.async
+            Note over Network: Serial queue ensures<br/>thread-safe state access
 
-        alt Request Deduplication - Already Downloading
-            Network-->>Network: Check activeDownloads[url]
-            Network-->>Network: Join existing DownloadTask
-            Note over Network: Multiple requests for same URL<br/>share single network call
-            Network-->>Manager: (Will notify via shared task)
-            deactivate Network
+            alt Request Deduplication - Already Downloading
+                Network-->>Network: Check activeDownloads[url]
+                Network-->>Network: Join existing DownloadTask
+                Note over Network: Multiple requests for same URL<br/>share single network call
+                Network-->>Manager: (Will notify via shared task)
+                deactivate Network
 
-        else Concurrency Limit Reached
-            Network-->>Queue: Add to pendingQueue
-            activate Queue
-            Note over Queue: Insert based on priority:<br/>high priority jumps ahead
-            deactivate Queue
-            Network-->>Manager: (Queued, will start when slot available)
-            deactivate Network
-
-        else Slot Available - Start Download
-            Network->>Network: Create DownloadTask
-            Network->>Network: Add to activeDownloads
-            Network->>URLSession: dataTask(with: request)
-            activate URLSession
-
-            Note over URLSession: Background thread download<br/>with progress callbacks
-
-            URLSession-->>Network: Download progress updates
-            Network->>UI: progress callback (main thread)
-            UI->>User: Show progress
-
-            alt Download Success
-                URLSession-->>Network: Data received
-                deactivate URLSession
-
-                Network->>Decoder: decodeImage(from: data)
-                activate Decoder
-                Note over Decoder: Decode on background thread<br/>to avoid blocking main thread
-                Decoder-->>Network: UIImage
-                deactivate Decoder
-
-                Network->>Network: Remove from activeDownloads
-                Network->>Network: notifyAllWaiters(image, nil)
-                Network->>Queue: processNextPendingUnsafe()
+            else Concurrency Limit Reached
+                Network-->>Queue: Add to pendingQueue
                 activate Queue
-                Queue-->>Queue: Pop next request<br/>from priority queue
-                Queue->>Network: Start next download
+                Note over Queue: Insert based on priority:<br/>high priority jumps ahead
                 deactivate Queue
-
-                Network-->>Manager: completion(image, nil)
+                Network-->>Manager: (Queued, will start when slot available)
                 deactivate Network
 
-                Note over Manager: Process Downloaded Image
-                Manager->>Manager: processDownloadedImage()
-
-                par Save to Storage (Background)
-                    Manager->>Storage: saveImage(image, url)
-                    activate Storage
-                    Note over Storage: DispatchQueue.global()<br/>1. Create subdirectories<br/>2. Compress image<br/>3. Write to disk atomically
-                    deactivate Storage
-                and Update Cache (Actor)
-                    Manager->>Cache: await setImage(image, url, isHighLatency)
-                    activate Cache
-                    Note over Cache: 1. Update cacheData[url]<br/>2. Append to LRU queue<br/>3. Evict if over limit
-                    Cache-->>Cache: evictMemory(isHighLatency)
-                    Note over Cache: Remove least recently used<br/>from front of queue
-                    deactivate Cache
-                end
-
-                Manager->>Manager: notifySuccess(url, image)
-                Manager->>UI: completion(image, nil, fromCache: false, fromStorage: false)
-                Manager->>Registry: notifyCallers(url, image, nil, false, false)
-                activate Registry
-                Registry-->>Registry: Get all waiters for URL
-                Registry-->>Registry: Filter alive callers (WeakBox)
-                Registry-->>Registry: Remove URL from registry
-                loop For each waiting caller
-                    Registry->>UI: completion(image, nil, false, false)<br/>(main thread)
-                    UI->>User: Display Image
-                end
-                deactivate Registry
-
-            else Download Failed with Retry
-                URLSession-->>Network: Error
-                deactivate URLSession
-                Network->>Network: Check RetryPolicy.shouldRetry()
-                Note over Network: Exponential backoff:<br/>delay = baseDelay × 2^attempt
-                Network->>Network: asyncAfter(delay)
-                Network->>URLSession: Retry download
+            else Slot Available - Start Download
+                Network->>Network: Create DownloadTask
+                Network->>Network: Add to activeDownloads
+                Network->>URLSession: dataTask(with: request)
                 activate URLSession
-                Note over URLSession: Attempt download again<br/>up to maxAttempts
-                URLSession-->>Network: ...
-                deactivate URLSession
 
-            else Download Failed - No Retry
-                URLSession-->>Network: Error (final)
-                deactivate URLSession
-                Network->>Network: Remove from activeDownloads
-                Network->>Network: notifyAllWaiters(nil, error)
-                Network->>Queue: processNextPendingUnsafe()
-                Network-->>Manager: completion(nil, error)
-                deactivate Network
+                Note over URLSession: Background thread download<br/>with progress callbacks
 
-                Manager->>Manager: notifyFailure(url, error)
-                Manager->>UI: completion(nil, error, false, false)
-                Manager->>Registry: notifyCallers(url, nil, error, false, false)
-                activate Registry
-                loop For each waiting caller
-                    Registry->>UI: completion(nil, error, false, false)
-                    UI->>User: Show error state
+                URLSession-->>Network: Download progress updates
+                Network->>UI: progress callback (main thread)
+                UI->>User: Show progress
+
+                alt Download Success
+                    URLSession-->>Network: Data received
+                    deactivate URLSession
+
+                    Network->>Decoder: decodeImage(from: data)
+                    activate Decoder
+                    Note over Decoder: Decode on background thread<br/>to avoid blocking main thread
+                    Decoder-->>Network: UIImage
+                    deactivate Decoder
+
+                    Network->>Network: Remove from activeDownloads
+                    Network->>Network: notifyAllWaiters(image, nil)
+                    Network->>Queue: processNextPendingUnsafe()
+                    activate Queue
+                    Queue-->>Queue: Pop next request<br/>from priority queue
+                    Queue->>Network: Start next download
+                    deactivate Queue
+
+                    Network-->>Manager: completion(image, nil)
+                    deactivate Network
+
+                    Note over Manager: Process Downloaded Image
+                    Manager->>Manager: processDownloadedImage()
+
+                    par Save to Storage (Background)
+                        Manager->>Storage: saveImage(image, url)
+                        activate Storage
+                        Note over Storage: DispatchQueue.global()<br/>1. Create subdirectories<br/>2. Compress image<br/>3. Write to disk atomically
+                        deactivate Storage
+                    and Update Cache (Actor)
+                        Manager->>Cache: await setImage(image, url, isHighLatency)
+                        activate Cache
+                        Note over Cache: 1. Update cacheData[url]<br/>2. Append to LRU queue<br/>3. Evict if over limit
+                        Cache-->>Cache: evictMemory(isHighLatency)
+                        Note over Cache: Remove least recently used<br/>from front of queue
+                        deactivate Cache
+                    end
+
+                    Manager->>Manager: notifySuccess(url, image)
+                    Manager->>UI: completion(image, nil, fromCache: false, fromStorage: false)
+                    Manager->>Registry: notifyCallers(url, image, nil, false, false)
+                    activate Registry
+                    Registry-->>Registry: Get all waiters for URL
+                    Registry-->>Registry: Filter alive callers (WeakBox)
+                    Registry-->>Registry: Remove URL from registry
+                    loop For each waiting caller
+                        Registry->>UI: completion(image, nil, false, false)<br/>(main thread)
+                        UI->>User: Display Image
+                    end
+                    deactivate Registry
+
+                else Download Failed with Retry
+                    URLSession-->>Network: Error
+                    deactivate URLSession
+                    Network->>Network: Check RetryPolicy.shouldRetry()
+                    Note over Network: Exponential backoff:<br/>delay = baseDelay × 2^attempt
+                    Network->>Network: asyncAfter(delay)
+                    Network->>URLSession: Retry download
+                    activate URLSession
+                    Note over URLSession: Attempt download again<br/>up to maxAttempts
+                    URLSession-->>Network: ...
+                    deactivate URLSession
+
+                else Download Failed - No Retry
+                    URLSession-->>Network: Error (final)
+                    deactivate URLSession
+                    Network->>Network: Remove from activeDownloads
+                    Network->>Network: notifyAllWaiters(nil, error)
+                    Network->>Queue: processNextPendingUnsafe()
+                    Network-->>Manager: completion(nil, error)
+                    deactivate Network
+
+                    Manager->>Manager: notifyFailure(url, error)
+                    Manager->>UI: completion(nil, error, false, false)
+                    Manager->>Registry: notifyCallers(url, nil, error, false, false)
+                    activate Registry
+                    loop For each waiting caller
+                        Registry->>UI: completion(nil, error, false, false)
+                        UI->>User: Show error state
+                    end
+                    deactivate Registry
                 end
-                deactivate Registry
             end
-        end
         end
     end
 
