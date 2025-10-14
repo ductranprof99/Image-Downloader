@@ -202,7 +202,6 @@ sequenceDiagram
         Network-->>Network: Join existing DownloadTask
         Note over Network: Multiple requests share<br/>one network call
         Network-->>Manager: (Will notify when complete)
-        deactivate Network
 
     else Concurrency Limit Reached
         Network->>Queue: Add to pendingQueue
@@ -210,7 +209,6 @@ sequenceDiagram
         Note over Queue: Priority-based insertion:<br/>high priority goes first
         deactivate Queue
         Network-->>Manager: (Queued, will start later)
-        deactivate Network
 
     else Slot Available - Start Download
         Network->>Network: Create DownloadTask
@@ -235,8 +233,8 @@ sequenceDiagram
         deactivate Queue
 
         Network-->>Manager: completion(image, nil)
-        deactivate Network
     end
+    deactivate Network
 ```
 
 ---
@@ -315,7 +313,6 @@ sequenceDiagram
 
     alt Should Retry
         RetryPolicy-->>Network: true + delay
-        deactivate RetryPolicy
 
         Note over Network: Exponential backoff:<br/>delay = baseDelay × 2^attempt
 
@@ -327,18 +324,16 @@ sequenceDiagram
 
         alt Retry Success
             URLSession-->>Network: Data received ✓
-            deactivate URLSession
             Network-->>Manager: completion(image, nil)
 
         else Retry Failed Again
             URLSession-->>Network: Error again ✗
-            deactivate URLSession
             Note over Network: Continue retry loop<br/>or give up
         end
+        deactivate URLSession
 
     else Should NOT Retry (Max attempts reached)
         RetryPolicy-->>Network: false
-        deactivate RetryPolicy
 
         Network->>Network: notifyAllWaiters(nil, error)
         Network-->>Manager: completion(nil, error)
@@ -346,6 +341,7 @@ sequenceDiagram
         Manager->>Manager: notifyFailure(url, error)
         Manager->>UI: completion(nil, error)
     end
+    deactivate RetryPolicy
 ```
 
 ---
