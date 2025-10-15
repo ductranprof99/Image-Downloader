@@ -1,246 +1,80 @@
-# ImageDownloader Library - Complete Sequence Diagram
+# ImageDownloader Library - Simplified Combined Sequence Diagram
 
-## Full Request Flow with All Components
+## Unified Flow 
 
-```plantuml
-@startuml ImageDownloader_Complete_Flow
-!theme plain
-skinparam backgroundColor #FFFFFF
-skinparam defaultFontName Arial
-skinparam sequenceMessageAlign center
-skinparam BoxPadding 10
+```mermaid
+sequenceDiagram
+    autonumber
+    actor View
+    participant Manager as ImageDownloader Manager
+    participant Cache
+    participant Storage
+    participant Network
+    participant Decoder
 
-title ImageDownloader Library - Complete Request Flow
+    View->>Manager: requestImage(url, completion)
+    Manager->>Cache: getImageInCache(for url)
+    alt Cache HIT
+        Cache-->>Manager: image
+        Manager-->>View: completion(image, fromCache=true)
+    else Cache WAIT (duplicate)
+        Cache-->>Manager: wait
+        Manager->>Manager: joinExistingRequest(for url)
+        note over Manager: Completion delivered when ongoing download finishes
+    else Cache MISS
+        Cache-->>Manager: miss
 
-actor "Caller\n(UIImageView)" as Caller
-participant "ImageDownloader\nManager" as Manager
-participant "CacheAgent\n(Actor)" as Cache
-participant "StorageAgent\n(FileManager)" as Storage
-participant "NetworkAgent\n(Serial Queue)" as Network
-participant "CallerRegistry\n(NSLock)" as Registry
-participant "DownloadTask" as Task
-participant "ImageDecoder\n(Background)" as Decoder
-participant "URLSession" as Session
+        alt Storage enabled
+            Manager->>Storage: getImageInStorage(for url)
+            alt Storage HIT
+                Storage-->>Manager: image
+                Manager->>Cache: saveToCache(image)
+                Cache-->>Manager: ok
+                Manager-->>View: completion(image, fromStorage=true)
+            else Storage MISS
+                Storage-->>Manager: nil
+                Manager->>Network: downloadImage(for url)
+                alt Joined existing download
+                    Network-->>Manager: joined
+                    note over Manager: Wait for existing download result
+                else New download
+                    Network-->>Manager: data or error
+                end
 
-== Scenario 1: Cache HIT ==
+                alt Download success
+                    Manager->>Decoder: decodeImage(from data)
+                    Decoder-->>Manager: image
+                    opt Save to storage enabled
+                        Manager->>Storage: saveToStorage(image, for url)
+                        Storage-->>Manager: ok
+                    end
+                    Manager->>Cache: saveToCache(image)
+                    Cache-->>Manager: ok
+                    Manager-->>View: completion(image)
+                else Download failure
+                    Manager-->>View: completion(error)
+                end
+            end
+        else Storage disabled
+            Manager->>Network: downloadImage(for url)
+            alt Joined existing download
+                Network-->>Manager: joined
+                note over Manager: Wait for existing download result
+            else New download
+                Network-->>Manager: data or error
+            end
 
-Caller -> Manager: requestImage(url, caller, completion)
-activate Manager
-
-Manager -> Cache: image(for: url)
-activate Cache
-Cache -> Cache: Check cacheData[urlKey]
-Cache --> Manager: .hit(UIImage)
-deactivate Cache
-
-Manager -> Manager: mainThreadCompletion on main queue
-Manager --> Caller: completion(image, nil, fromCache: true)
-deactivate Manager
-
-== Scenario 2: Cache WAIT (Duplicate Request) ==
-
-Caller -> Manager: requestImage(url, caller, completion)
-activate Manager
-
-Manager -> Cache: image(for: url)
-activate Cache
-Cache -> Cache: Check cacheData[urlKey]
-note right: Entry exists but .default\n(download in progress)
-Cache --> Manager: .wait
-deactivate Cache
-
-Manager -> Registry: registerCaller(url, caller, completion)
-activate Registry
-Registry -> Registry: Create WeakBox(caller)
-Registry -> Registry: callerRegistry[urlKey].append(entry)
-note right: Lock with NSLock\nStore (WeakBox, completion, progress)
-Registry --> Manager: registered
-deactivate Registry
-
-note over Manager: Request joined to existing download\nNo new network request made
-deactivate Manager
-
-== Scenario 3: Cache MISS -> Storage HIT ==
-
-Caller -> Manager: requestImage(url, caller, completion)
-activate Manager
-
-Manager -> Cache: image(for: url)
-activate Cache
-Cache -> Cache: Check cacheData[urlKey]
-Cache -> Cache: cacheData[urlKey] = .default
-note right: Mark as WAIT state\nfor future requests
-Cache --> Manager: .miss
-deactivate Cache
-
-alt shouldSaveToStorage == true
-    Manager -> Storage: image(for: url)
-    activate Storage
-    Storage -> Storage: Read file from disk
-    Storage --> Manager: UIImage (from storage)
-    deactivate Storage
-
-    Manager -> Cache: setImage(image, isHighLatency)
-    activate Cache
-    Cache -> Cache: cacheData[urlKey] = CacheEntry(image)
-    Cache -> Cache: Update LRU queue
-    Cache -> Cache: evictMemory() if needed
-    deactivate Cache
-
-    Manager --> Caller: completion(image, nil, fromCache: false, fromStorage: true)
-end
-
-deactivate Manager
-
-== Scenario 4: Cache MISS -> Storage MISS -> Network Download ==
-
-Caller -> Manager: requestImage(url, caller, completion)
-activate Manager
-
-Manager -> Cache: image(for: url)
-activate Cache
-Cache -> Cache: cacheData[urlKey] = .default
-Cache --> Manager: .miss
-deactivate Cache
-
-Manager -> Storage: image(for: url)
-activate Storage
-Storage -> Storage: Check file exists
-Storage --> Manager: nil (not found)
-deactivate Storage
-
-Manager -> Network: downloadData(url, priority, progress, completion)
-activate Network
-
-Network -> Network: Check on isolationQueue
-alt Duplicate Request Detection
-    Network -> Network: activeDownloads[urlKey] exists?
-    Network -> Task: addWaiter(completion, progress)
-    note right: Request deduplication\nJoin existing download
-else Concurrency Limit Check
-    Network -> Network: activeDownloads.count >= maxConcurrent?
-    alt Queue Full
-        Network -> Network: Create PendingDownloadRequest
-        Network -> Network: Insert into pendingQueue\n(priority-based insertion)
-        note right: High priority requests\ninserted before low priority
-    else Slot Available
-        Network -> Network: startDownloadUnsafe()
-        Network -> Task: Create DownloadTask
-        activate Task
-        Network -> Network: activeDownloads[urlKey] = task
-
-        Network -> Session: dataTask(with: request).resume()
-        activate Session
-
-        Session -> Session: URLSessionDataTask
-        note right: HTTP download in progress\nProgress callbacks via SessionDelegate
-
-        Session --> Network: data + response
-        deactivate Session
-
-        alt Download Success
-            Network -> Network: Validate response (200-299)
-            Network -> Network: Validate data
-
-            Network -> Decoder: decodeImage(from: data)
-            activate Decoder
-            note right: Background thread\nUIImage(data: data)
-            Decoder --> Network: UIImage
-            deactivate Decoder
-
-            Network -> Task: notifyAllWaiters(data, nil)
-            Task -> Task: Iterate all waiters
-
-            Task --> Network: completion(UIImage, nil)
-            deactivate Task
-
-            Network -> Network: activeDownloads.remove(urlKey)
-            Network -> Network: processNextPendingUnsafe()
-            note right: Start next pending download\nif queue not empty
-
-            Network --> Manager: completion(UIImage, nil)
-
-        else Download Failure
-            alt Retry Policy
-                Network -> Network: shouldRetry(error, attempt)
-                Network -> Network: delay = retryPolicy.delay(attempt + 1)
-                Network -> Network: Retry after exponential backoff
-            else No Retry
-                Network -> Task: notifyAllWaiters(nil, error)
-                Task --> Network: completion(nil, error)
-                deactivate Task
-                Network --> Manager: completion(nil, error)
+            alt Download success
+                Manager->>Decoder: decodeImage(from data)
+                Decoder-->>Manager: image
+                Manager->>Cache: saveToCache(image)
+                Cache-->>Manager: ok
+                Manager-->>View: completion(image)
+            else Download failure
+                Manager-->>View: completion(error)
             end
         end
     end
-end
-
-deactivate Network
-
-alt Success - Process Downloaded Image
-    Manager -> Storage: saveImage(image, url)
-    activate Storage
-    note right: Background thread\nAtomic write operation
-    Storage -> Storage: compressionProvider.compress(image)
-    Storage -> Storage: write to disk
-    Storage --> Manager: success
-    deactivate Storage
-
-    Manager -> Cache: setImage(image, isHighLatency)
-    activate Cache
-    Cache -> Cache: Update cacheData[urlKey]
-    Cache -> Cache: Append to LRU queue
-    Cache -> Cache: evictMemory() if needed
-    deactivate Cache
-
-    Manager -> Manager: notifySuccess(url, image)
-    Manager --> Caller: completion(image, nil, false, false)
-
-    Manager -> Registry: notifyCallers(url, image, nil)
-    activate Registry
-    Registry -> Registry: Get waiters for urlKey
-    Registry -> Registry: callerRegistry.removeValue(urlKey)
-
-    loop For each waiter
-        Registry -> Registry: Check waiter.caller.value != nil
-        alt Caller Still Alive
-            Registry -> Caller: DispatchQueue.main.async {\n  completion(image, nil, false, false)\n}
-        else Caller Dead
-            Registry -> Registry: Skip (WeakBox.value == nil)
-        end
-    end
-    deactivate Registry
-
-else Failure
-    Manager -> Manager: notifyFailure(url, error)
-    Manager --> Caller: completion(nil, error, false, false)
-
-    Manager -> Registry: notifyCallers(url, nil, error)
-    activate Registry
-    Registry -> Registry: Notify all waiting callers
-    deactivate Registry
-end
-
-deactivate Manager
-
-== Background: Periodic Cleanup (Every 30s) ==
-
-Manager -> Manager: Timer fires every 30s
-Manager -> Registry: cleanupDeadCallers()
-activate Registry
-
-Registry -> Registry: Lock with NSLock
-loop For each (urlKey, waiters)
-    Registry -> Registry: Filter aliveWaiters\n(waiter.caller.value != nil)
-    alt All Waiters Dead
-        Registry -> Registry: callerRegistry.removeValue(urlKey)
-    else Some Alive
-        Registry -> Registry: callerRegistry[urlKey] = aliveWaiters
-    end
-end
-deactivate Registry
-
-@enduml
 ```
 
 ## Key Components Interaction Details
