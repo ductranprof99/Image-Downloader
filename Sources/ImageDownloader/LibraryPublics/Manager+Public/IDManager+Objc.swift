@@ -28,7 +28,7 @@ extension ImageDownloaderManager {
         updateLatency latency: ResourceUpdateLatency = .high,
         downloadPriority: DownloadPriority = .high,
         progress: ImageProgressBlock? = nil,
-        completion: ImageCompletionBlock? = nil,
+        completion: ImageCompletionBlock? = nil
     ) {
         // Wrap callbacks to ensure they run on main thread only
         let mainThreadCompletion: ImageCompletionBlock? = completion.map { block in
